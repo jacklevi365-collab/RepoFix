@@ -1,0 +1,6 @@
+--- a/segments.py
++++ b/segments.py
+@@ -1,2 +1,2 @@
+ def split_path(path):
+-    return path.split("/")
++    return path.strip("/").split("/")

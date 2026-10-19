@@ -1,0 +1,11 @@
+--- a/cache.py
++++ b/cache.py
+@@ -7,7 +7,7 @@
+         if key not in self.entries:
+             return None
+         value, expiry = self.entries[key]
+-        if now > expiry:
++        if now >= expiry:
+             del self.entries[key]
+             return None
+         return value

@@ -110,6 +110,19 @@ python3 -m repofix run \
 - Docker 限制适合本地项目实验，不等同于运行敌对代码的强隔离服务；当前只面向你审查过的仓库。
 - 上下文当前采用工具输出截断和总量停止，尚未实现摘要压缩或任务恢复。
 
+## 批量评测
+
+已包含五个带参考补丁和独立测试的人工开发任务，详见 [benchmarks/README.md](benchmarks/README.md)。
+
+```bash
+python3 -m repofix batch --mode preflight
+python3 -m repofix batch --mode reference
+# 配置 Key 和价格后运行真实模型；所有任务共享同一预算账本
+python3 -m repofix batch --mode model --task-budget 2 --total-budget 100
+```
+
+批量结果逐项保存，失败任务保留在统计分母中。参考补丁验证与模型实验使用不同的结果类型，防止把系统演示误写为模型指标。
+
 ## 开发路线
 
 详细计划见 [docs/roadmap.md](docs/roadmap.md)，设计取舍见 [docs/architecture.md](docs/architecture.md)。先固定模型和任务集，再比较代码定位、上下文管理和测试反馈策略。任何简历指标必须来自保存的真实运行记录。

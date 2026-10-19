@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "name": "repofix-synthetic-dev-v1",
+  "split": "development",
+  "provenance": "synthetic",
+  "description": "人工构造的开发与系统验收任务，不用于证明真实仓库修复成功率。",
+  "tasks": [
+    {
+      "id": "mean-boundary",
+      "repo": "mean-boundary/repo",
+      "issue": "mean-boundary/issue.md",
+      "verification": "mean-boundary/verification",
+      "reference_patch": "mean-boundary/reference.patch",
+      "image": "python:3.11-slim"
+    },
+    {
+      "id": "pagination-offset",
+      "repo": "pagination-offset/repo",
+      "issue": "pagination-offset/issue.md",
+      "verification": "pagination-offset/verification",
+      "reference_patch": "pagination-offset/reference.patch",
+      "image": "python:3.11-slim"
+    },
+    {
+      "id": "cache-expiry",
+      "repo": "cache-expiry/repo",
+      "issue": "cache-expiry/issue.md",
+      "verification": "cache-expiry/verification",
+      "reference_patch": "cache-expiry/reference.patch",
+      "image": "python:3.11-slim"
+    },
+    {
+      "id": "decimal-total",
+      "repo": "decimal-total/repo",
+      "issue": "decimal-total/issue.md",
+      "verification": "decimal-total/verification",
+      "reference_patch": "decimal-total/reference.patch",
+      "image": "python:3.11-slim"
+    },
+    {
+      "id": "route-segments",
+      "repo": "route-segments/repo",
+      "issue": "route-segments/issue.md",
+      "verification": "route-segments/verification",
+      "reference_patch": "route-segments/reference.patch",
+      "image": "python:3.11-slim"
+    }
+  ]
+}

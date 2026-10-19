@@ -11,6 +11,7 @@
 | `evaluation.py` | 独立 unittest 执行、用例身份校验与结果分类 |
 | `preflight.py` | 付费调用前检查依赖导入、测试收集与原版本失败 |
 | `budget.py` | SQLite 事务预留与 usage 结算 |
+| `benchmark.py` | 任务清单校验、预算共享与分类型批量汇总 |
 | `runs.py` | 可复用任务生命周期、结果报告与执行指纹 |
 | `cli.py` | CLI 参数与配置入口 |
 
