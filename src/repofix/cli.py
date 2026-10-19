@@ -4,6 +4,7 @@ import math
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
+from .config import load_env_file
 from .agent import Agent
 from .budget import BudgetExceeded, Ledger
 from .provider import DeepSeek, ScriptedDemo
@@ -43,6 +44,7 @@ def main():
     run.add_argument('--total-budget', type=positive, default=100.0)
     run.add_argument('--demo', action='store_true', help='Scripted tinybug fixture; no model calls')
     run.add_argument('--verification', type=Path)
+    run.add_argument('--env-file', type=Path, default=Path('.env'))
     args = parser.parse_args()
     try:
         if args.action == 'doctor':
@@ -74,6 +76,8 @@ def main():
         output = args.output.resolve()
         output.mkdir(parents=True, exist_ok=True)
         ledger = Ledger(output / 'budget.sqlite', args.total_budget)
+        if not args.demo:
+            load_env_file(args.env_file)
         provider = ScriptedDemo() if args.demo else DeepSeek(ledger, run_id, args.task_budget)
         folder = output / run_id
         folder.mkdir()
