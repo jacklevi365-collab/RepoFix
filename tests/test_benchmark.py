@@ -41,11 +41,13 @@ class BenchmarkTests(unittest.TestCase):
 
     def test_failures_are_in_model_metric_denominator(self):
         results = [
-            {"status": "candidate", "resolved": True},
-            {"status": "budget_limit", "resolved": False},
+            {"status": "candidate", "resolved": True, "request_reservations": 1},
+            {"status": "budget_limit", "resolved": False, "request_reservations": 1},
         ]
         self.assertEqual(summarize(results, "model")["model_success_rate"], 0.5)
         self.assertIsNone(summarize(results, "reference")["model_success_rate"])
+        no_requests = [{"status": "error", "resolved": False, "request_reservations": 0}]
+        self.assertIsNone(summarize(no_requests, "model")["model_success_rate"])
 
     def test_duplicate_ids_and_unknown_selection_fail_early(self):
         with tempfile.TemporaryDirectory() as tmp:

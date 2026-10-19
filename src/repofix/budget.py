@@ -49,3 +49,23 @@ class Ledger:
             return db.execute(
                 "SELECT COALESCE(SUM(amount),0) FROM calls WHERE run=?", (run,)
             ).fetchone()[0]
+
+    def summary(self, run=None):
+        where, parameters = (" WHERE run=?", (run,)) if run is not None else ("", ())
+        with self.connect() as db:
+            rows = db.execute(
+                "SELECT state,COUNT(*),COALESCE(SUM(amount),0) FROM calls"
+                + where
+                + " GROUP BY state",
+                parameters,
+            ).fetchall()
+        counts = {state: count for state, count, _ in rows}
+        amounts = {state: amount for state, _, amount in rows}
+        return {
+            "estimated_total_rmb": sum(amounts.values()),
+            "reserved_rmb": amounts.get("reserved", 0),
+            "settled_rmb": amounts.get("settled", 0),
+            "request_reservations": sum(counts.values()),
+            "unsettled_requests": counts.get("reserved", 0),
+            "limit_rmb": self.total_limit,
+        }

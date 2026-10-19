@@ -265,7 +265,10 @@ def _run_task(spec, on_event, resume_folder, folder):
 
 
 def _finish(folder, report, ledger, started):
-    report["estimated_cost_rmb"] = ledger.spent(report["run_id"])
+    accounting = ledger.summary(report["run_id"])
+    report["request_reservations"] = accounting["request_reservations"]
+    report["unsettled_requests"] = accounting["unsettled_requests"]
+    report["estimated_cost_rmb"] = accounting["estimated_total_rmb"]
     report["duration_seconds"] = round(time.monotonic() - started, 3)
     report["completed_at"] = datetime.now(timezone.utc).isoformat()
     report["wall_duration_seconds"] = (

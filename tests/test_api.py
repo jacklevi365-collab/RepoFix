@@ -57,6 +57,7 @@ class ApiTests(unittest.TestCase):
                 self.assertIn("RepoFix", client.get("/").text)
                 self.assertEqual(client.get("/static/app.js").status_code, 200)
                 self.assertEqual(client.get("/api/experiments").json(), [])
+                self.assertEqual(client.get("/api/budget").json()["estimated_total_rmb"], 0)
                 payload = {"task_id": "demo-tinybug", "mode": "demo"}
                 response = client.post(
                     "/api/jobs", json=payload, headers={"Idempotency-Key": "once"}

@@ -15,6 +15,7 @@ PYTHONPATH=src .venv/bin/python -m repofix serve
 | 方法与路径 | 行为 |
 |---|---|
 | GET `/api/health` | 服务状态与固定 100 元总预算 |
+| GET `/api/budget` | 共享成本账本、预留与已结算估算 |
 | GET `/api/catalog` | 允许提交的开发任务 |
 | POST `/api/jobs` | 异步提交，返回 202 和任务 ID |
 | GET `/api/jobs` | 最近 50 个任务 |

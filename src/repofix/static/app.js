@@ -125,6 +125,13 @@ async function loadCatalog() {
       }),
   );
 }
+async function loadBudget() {
+  const budget = await api("/api/budget");
+  $("budget-caption").textContent =
+    `账本估算 ¥${budget.estimated_total_rmb.toFixed(2)} / ¥${budget.limit_rmb}`;
+  $("budget-caption").title =
+    `其中未结算预留 ¥${budget.reserved_rmb.toFixed(4)}；以账户实际扣费为准`;
+}
 async function loadJobs() {
   const jobs = await api("/api/jobs");
   $("job-count").textContent = jobs.length;
@@ -323,6 +330,7 @@ async function viewJob(id) {
     stream.close();
     if (selectedJob === id) refreshJob(id).catch(showError);
     loadJobs().catch(showError);
+    loadBudget().catch(showError);
   });
   loadJobs().catch(showError);
 }
@@ -391,6 +399,7 @@ $("refresh").onclick = async () => {
     await loadJobs();
     if (selectedJob) await refreshJob(selectedJob);
     await loadExperiments();
+    await loadBudget();
   } catch (error) {
     showError(error);
   }
@@ -399,6 +408,7 @@ async function boot() {
   navigate();
   try {
     await loadCatalog();
+    await loadBudget();
     const jobs = await loadJobs();
     if (jobs.length) await viewJob(jobs[0].id);
   } catch (error) {

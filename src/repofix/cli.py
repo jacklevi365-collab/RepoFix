@@ -5,6 +5,7 @@ import uuid
 from pathlib import Path
 from .runs import RunSpec, run_task, resume_task
 from .benchmark import run_batch
+from .budget import Ledger
 from .sandbox import DockerRunner
 from .preflight import prepare_baseline
 
@@ -44,6 +45,11 @@ def main():
     resume = sub.add_parser("resume", help="Resume a safe completed-round checkpoint")
     resume.add_argument("--run-dir", type=Path, required=True)
     resume.add_argument("--max-steps", type=int)
+    budget = sub.add_parser(
+        "budget", help="Inspect estimates and unresolved reservations without model calls"
+    )
+    budget.add_argument("--output", type=Path, default=Path("runs"))
+    budget.add_argument("--total-budget", type=positive, default=100.0)
     run = sub.add_parser("run")
     run.add_argument("--repo", type=Path, required=True)
     run.add_argument("--issue", type=Path, required=True)
@@ -67,6 +73,14 @@ def main():
             except ImportError:
                 raise ValueError('Install optional dependencies: pip install -e ".[web]"') from None
             uvicorn.run(create_app(args.root), host="127.0.0.1", port=args.port)
+            return
+        if args.action == "budget":
+            args.output.mkdir(parents=True, exist_ok=True)
+            print(
+                json.dumps(
+                    Ledger(args.output / "budget.sqlite", args.total_budget).summary(), indent=2
+                )
+            )
             return
         if args.action == "doctor":
             DockerRunner.check()

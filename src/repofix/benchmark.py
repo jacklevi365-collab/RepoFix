@@ -54,11 +54,13 @@ def summarize(results, mode):
     # verification as model performance.
     count = len(results)
     passed = sum(bool(r.get("resolved")) for r in results)
+    attempted = sum(r.get("request_reservations", 0) > 0 for r in results)
     return {
         "task_count": count,
         "passed_count": passed,
         "status_counts": dict(Counter(r["status"] for r in results)),
-        "model_success_rate": passed / count if mode == "model" and count else None,
+        "model_success_rate": passed / count if mode == "model" and count and attempted else None,
+        "model_attempted_tasks": attempted,
         "reference_validation_rate": passed / count if mode == "reference" and count else None,
         "estimated_cost_rmb": round(sum(r.get("estimated_cost_rmb", 0) for r in results), 6),
         "duration_seconds": round(sum(r.get("duration_seconds", 0) for r in results), 3),

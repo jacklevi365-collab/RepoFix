@@ -14,6 +14,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 from .benchmark import load_manifest
 from .jobs import JobStore, QueueFull
+from .budget import Ledger
 from .runs import RunSpec, run_task
 
 
@@ -161,6 +162,10 @@ def create_app(root=None, output=None, executor=run_task):
     @app.get("/api/health")
     def health():
         return {"status": "ok", "scope": "local", "budget_limit_rmb": 100}
+
+    @app.get("/api/budget")
+    def budget():
+        return Ledger(output / "budget.sqlite", 100).summary()
 
     @app.get("/api/catalog")
     def tasks():
