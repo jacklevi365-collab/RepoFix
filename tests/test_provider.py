@@ -110,3 +110,9 @@ class ProviderTests(unittest.TestCase):
             report = Agent(Truncated(), None, Path(self.tmp.name) / "trace.jsonl").run("fix")
             tools.return_value.execute.assert_not_called()
         self.assertEqual(report["status"], "model_output_limit")
+
+    def test_invalid_numeric_configuration_never_echoes_the_value(self):
+        with patch.dict(os.environ, {"REPOFIX_INPUT_RMB_PER_MILLION": "private-config-value"}):
+            with self.assertRaises(ValueError) as caught:
+                DeepSeek(self.ledger, "task")
+        self.assertNotIn("private-config-value", str(caught.exception))

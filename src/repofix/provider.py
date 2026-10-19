@@ -14,8 +14,13 @@ class DeepSeek:
                 "Set DEEPSEEK_API_KEY in the environment; do not put keys in task files"
             )
         self.model = os.environ.get("DEEPSEEK_MODEL", "deepseek-flash")
-        self.input_price = float(os.environ.get("REPOFIX_INPUT_RMB_PER_MILLION", "0"))
-        self.output_price = float(os.environ.get("REPOFIX_OUTPUT_RMB_PER_MILLION", "0"))
+        try:
+            self.input_price = float(os.environ.get("REPOFIX_INPUT_RMB_PER_MILLION", "0"))
+            self.output_price = float(os.environ.get("REPOFIX_OUTPUT_RMB_PER_MILLION", "0"))
+        except ValueError:
+            raise ValueError(
+                "Configure numeric RMB input/output prices per million tokens"
+            ) from None
         if not all(math.isfinite(p) and p > 0 for p in (self.input_price, self.output_price)):
             raise ValueError(
                 "Configure positive current RMB input/output prices per million tokens"
