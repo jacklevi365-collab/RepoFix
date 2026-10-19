@@ -4,7 +4,6 @@ import os
 import shlex
 import urllib.error
 import urllib.request
-from .budget import Ledger
 
 
 class DeepSeek:
@@ -35,11 +34,14 @@ class DeepSeek:
                 result = json.load(response)
         except urllib.error.HTTPError as exc:
             raise RuntimeError(f"DeepSeek HTTP {exc.code}; reservation retained; inspect account billing") from None
-        usage = result.get("usage", {})
+        choice=result['choices'][0]
+        self.last_response_metadata={key:result.get(key) for key in ('id','model','system_fingerprint')}
+        self.last_response_metadata['finish_reason']=choice.get('finish_reason')
+        usage = result.get("usage") or {}
         if "prompt_tokens" in usage and "completion_tokens" in usage:
             cost = (usage["prompt_tokens"]*self.input_price + usage["completion_tokens"]*self.output_price)/1_000_000
             self.ledger.settle(call_id, cost)
-        return result["choices"][0]["message"], usage
+        return choice["message"], usage
 
 
 class ScriptedDemo:

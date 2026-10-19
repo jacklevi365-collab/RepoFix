@@ -170,7 +170,7 @@ python3 -m repofix batch --mode model --context-mode full
 python3 -m repofix batch --mode model --context-mode compact
 ```
 
-报告记录策略、模型/工具调用数量、token 用量、耗时和压缩事件。需要在相同任务、模型与预算下实测，当前没有压缩策略提高成功率的结论。
+报告记录策略、模型/工具调用数量、token 用量、服务端返回的模型标识、耗时和压缩事件。usage 缺失时明确标记为不完整；输出被 token 上限截断时，不执行可能残缺的工具调用。需要在相同任务、模型与预算下实测，当前没有压缩策略提高成功率的结论。
 
 ## 开发路线
 

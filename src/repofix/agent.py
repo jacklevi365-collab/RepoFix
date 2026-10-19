@@ -57,7 +57,13 @@ class Agent:
             save_checkpoint(checkpoint,phase='in_flight',messages=messages,next_step=step)
             started = time.monotonic()
             message, usage = self.provider.complete(messages, self.tools.schemas)
-            self.event("model", step=step, message=message, usage=usage, duration_seconds=round(time.monotonic()-started, 3))
+            metadata=getattr(self.provider,'last_response_metadata',{})
+            self.event("model", step=step, message=message, usage=usage, response_metadata=metadata,
+                       duration_seconds=round(time.monotonic()-started, 3))
+            if metadata.get('finish_reason')=='length':
+                result={'status':'model_output_limit','steps':step+1,'summary':'Model output reached the configured token limit; no partial tool call executed'}
+                save_checkpoint(checkpoint,phase='finished',messages=messages,next_step=step+1,result=result)
+                return result
             messages.append(message)
             calls = message.get("tool_calls") or []
             if not calls:

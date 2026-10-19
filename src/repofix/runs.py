@@ -178,6 +178,8 @@ def _finish(folder, report, ledger, started):
     events = [json.loads(line) for line in trace.read_text().splitlines()] if trace.exists() else []
     model_events = [event for event in events if event['kind'] == 'model']
     report['model_responses'] = len(model_events)
+    report['usage_complete']=report['evidence_type']=='scripted' or bool(model_events) and all('prompt_tokens' in event.get('usage',{}) and 'completion_tokens' in event.get('usage',{}) for event in model_events)
+    report['response_models']=sorted({event.get('response_metadata',{}).get('model') for event in model_events if event.get('response_metadata',{}).get('model')})
     report['tool_calls'] = sum(event['kind'] == 'tool' for event in events)
     report['usage'] = {key: sum(event.get('usage', {}).get(key, 0) for event in model_events)
                        for key in ('prompt_tokens', 'completion_tokens', 'total_tokens')}
