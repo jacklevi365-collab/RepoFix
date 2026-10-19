@@ -1,0 +1,58 @@
+{
+  "recorded_on": "2026-10-19",
+  "python_quality": {
+    "test_cases": 54,
+    "result": "passed",
+    "python_version": "3.11.3",
+    "ruff": "passed"
+  },
+  "frontend_quality": {
+    "test_cases": 2,
+    "result": "passed",
+    "format": "passed"
+  },
+  "browser_scripted_demo": {
+    "evidence_type": "scripted",
+    "resolved": true,
+    "independent_tests": 3,
+    "original_regressions": 1,
+    "request_reservations": 0,
+    "image": {
+      "image_id": "sha256:e88e9763f943ec1834f992a4b51e0f24500486803e8bc534e5767af9ea65f6ce",
+      "repo_digests": [
+        "python@sha256:e88e9763f943ec1834f992a4b51e0f24500486803e8bc534e5767af9ea65f6ce"
+      ],
+      "architecture": "amd64"
+    }
+  },
+  "upstream_reference_validation": {
+    "evidence_type": "reference",
+    "task_count": 3,
+    "validated_tasks": 3,
+    "original_regression_counts": {
+      "bucket-false-validator": 9,
+      "value-chain-typeerror": 5,
+      "split-empty-maxsplit": 20
+    },
+    "model_success_rate": null
+  },
+  "distribution": {
+    "version": "0.2.0",
+    "wheel_assets": "passed",
+    "isolated_cli_install": "passed"
+  },
+  "accounting": {
+    "estimated_total_rmb": 0,
+    "reserved_rmb": 0,
+    "settled_rmb": 0,
+    "request_reservations": 0,
+    "unsettled_requests": 0,
+    "limit_rmb": 100.0
+  },
+  "model_experiments": {
+    "status": "not_run",
+    "reason": "DeepSeek credentials temporarily deferred by user"
+  },
+  "ci_url": "https://github.com/jacklevi365-collab/RepoFix/actions/runs/39216818270",
+  "code_reference": "a1969f81294e26ad62ad8b72088c9cd2afd25667"
+}

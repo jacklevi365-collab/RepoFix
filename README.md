@@ -194,6 +194,15 @@ python3 -m repofix batch --mode model --context-mode compact
 
 报告记录策略、模型/工具调用数量、token 用量、服务端返回的模型标识、耗时和压缩事件。usage 缺失时明确标记为不完整；输出被 token 上限截断时，不执行可能残缺的工具调用。需要在相同任务、模型与预算下实测，当前没有压缩策略提高成功率的结论。
 
+## 项目资料
+
+- [运行与演示手册](docs/runbook.md)
+- [工程验收与剩余条件](docs/acceptance.md)
+- [实验协议](docs/experiment-protocol.md)
+- [面试讲解与代码阅读](docs/interview.md)
+- [简历描述草稿](docs/resume.md)
+- [贡献与质量检查](CONTRIBUTING.md)
+
 ## 开发路线
 
 详细计划见 [docs/roadmap.md](docs/roadmap.md)，设计取舍见 [docs/architecture.md](docs/architecture.md)。先固定模型和任务集，再比较代码定位、上下文管理和测试反馈策略。任何简历指标必须来自保存的真实运行记录。

@@ -20,6 +20,7 @@
 | combined | structured + shell | compact |
 
 ```bash
+export PYTHONPATH="$PWD/src"
 # 只打印计划，不需要 Key，也不运行 Docker
 python3 -m repofix matrix
 # 本机配置 Key 和价格后才执行真实实验
