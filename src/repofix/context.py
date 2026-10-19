@@ -37,7 +37,9 @@ def compact_messages(messages, limit):
         head = content.encode()[:600].decode(errors="replace")
         tail = content.encode()[-1400:].decode(errors="replace")
         message["content"] = (
-            head + "\n[older result shortened; full output is in trace.jsonl]\n" + tail
+            head
+            + "\n[older output shortened; rerun source inspection if needed; full controller trace retained for review]\n"
+            + tail
         )
         trimmed += 1
     return compacted, {
