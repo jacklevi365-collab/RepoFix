@@ -1,5 +1,4 @@
 import os
-import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -37,35 +36,26 @@ def export_patch(workspace, destination):
     return bool(patch)
 
 
-def verify(source, patch, target, verification, runner_factory, command):
-    """Fresh source + delivered patch; never execute in the agent's used workspace."""
+def patched_workspace(source, patch, target):
+    """Apply the delivered patch to a fresh snapshot, never reuse agent state."""
     snapshot(source, target)
     subprocess.run(['git', '-C', str(target), 'apply', '--', str(Path(patch).resolve())],
                    check=True, capture_output=True, timeout=30)
-    # Detect broken verification environments before accepting a repaired candidate.
-    result = runner_factory(target, verification=verification).run(command, timeout=60)
-    return result
 
 
-def verification_passed(baseline, candidate):
-    """Fail closed on zero tests, skipped-only runs and import failures.
-
-    v0.1 accepts unittest output; custom verification commands must also emit
-    its test-count summary. This is not protection against adversarial output.
-    """
-    def count(result):
-        matches = re.findall(r'^Ran (\d+) tests? in ', result['output'], re.MULTILINE)
-        return int(matches[-1]) if matches else 0
-
-    if baseline['timed_out'] or candidate['timed_out']:
-        return False
-    if baseline['exit_code'] == 0 or candidate['exit_code'] != 0:
-        return False
-    expected, actual = count(baseline), count(candidate)
-    if expected == 0 or actual != expected:
-        return False
-    if any(error in baseline['output'] + candidate['output']
-           for error in ('ModuleNotFoundError', 'ImportError', '_FailedTest')):
-        return False
-    skipped = re.search(r'OK \(skipped=(\d+)\)', candidate['output'])
-    return not skipped or int(skipped.group(1)) < actual
+def integrity_violations(workspace):
+    """Existing tests cannot change; dependency/test configuration cannot be added."""
+    original = set(git(workspace, 'ls-tree', '-r', '--name-only', '-z', 'HEAD').split('\0'))
+    changed = git(workspace, 'diff', '--name-only', '-z', 'HEAD').split('\0')
+    violations = []
+    for name in filter(None, changed):
+        path = Path(name)
+        test = ('tests' in path.parts or 'test' in path.parts or path.name == 'tests.py'
+                or path.name.startswith('test_') or path.name.endswith('_test.py'))
+        config = (path.name in {'pyproject.toml', 'setup.py', 'setup.cfg', 'pytest.ini',
+                  'tox.ini', 'conftest.py', 'Pipfile', 'Pipfile.lock', 'poetry.lock', 'uv.lock',
+                  'sitecustomize.py', 'usercustomize.py'}
+                  or path.name.startswith('requirements') and path.suffix in {'.txt', '.in'})
+        if config or test and name in original:
+            violations.append(name)
+    return sorted(violations)

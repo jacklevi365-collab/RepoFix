@@ -8,7 +8,8 @@ from .agent import Agent
 from .budget import BudgetExceeded, Ledger
 from .provider import DeepSeek, ScriptedDemo
 from .sandbox import DockerRunner
-from .workspace import export_patch, snapshot, verify, verification_passed
+from .workspace import export_patch, snapshot, patched_workspace, integrity_violations
+from .evaluation import run_checks, assess
 
 
 def positive(value):
@@ -32,7 +33,6 @@ def main():
     run.add_argument('--total-budget', type=positive, default=100.0)
     run.add_argument('--demo', action='store_true', help='Scripted tinybug fixture; no model calls')
     run.add_argument('--verification', type=Path)
-    run.add_argument('--verify-command', default='python -m unittest discover -s /verification -v')
     args = parser.parse_args()
     try:
         DockerRunner.check()
@@ -64,15 +64,19 @@ def main():
             report['has_patch'] = changed
             if not changed and report['status'] == 'candidate':
                 report['status'] = 'no_patch'
-            if changed and args.verification:
-                # The original must fail independent tests; the candidate must pass.
+            violations = integrity_violations(folder / 'workspace')
+            report['integrity_violations'] = violations
+            if violations:
+                report.update(status='policy_violation', verification='not_run')
+            elif changed and args.verification:
                 snapshot(args.repo, folder / 'baseline')
-                baseline = factory(folder / 'baseline', args.verification).run(args.verify_command, timeout=60)
-                result = verify(args.repo, folder / 'patch.diff', folder / 'verification-workspace',
-                                args.verification, factory, args.verify_command)
+                baseline = run_checks(factory(folder / 'baseline', args.verification))
+                patched_workspace(args.repo, folder / 'patch.diff', folder / 'verification-workspace')
+                result = run_checks(factory(folder / 'verification-workspace', args.verification))
+                assessment = assess(baseline, result)
                 report['baseline_result'], report['verification_result'] = baseline, result
-                report['verification'] = 'passed' if verification_passed(baseline, result) else 'failed'
-                # Limited to this task's supplied checks; not a general correctness claim.
+                report['verification'] = assessment['status']
+                report['verification_reason'] = assessment['reason']
         except BudgetExceeded as exc:
             report.update(status='budget_limit', error=str(exc))
         except Exception as exc:

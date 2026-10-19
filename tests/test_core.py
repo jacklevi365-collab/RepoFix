@@ -1,7 +1,5 @@
 import json
 import os
-import sqlite3
-import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -10,7 +8,8 @@ from repofix.agent import Agent
 from repofix.budget import BudgetExceeded, Ledger
 from repofix.provider import DeepSeek, ScriptedDemo
 from repofix.process import execute
-from repofix.workspace import snapshot, export_patch, verify, verification_passed
+from repofix.workspace import snapshot, export_patch, patched_workspace, integrity_violations
+from repofix.evaluation import run_checks, assess
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -22,20 +21,13 @@ class TrustedFixtureRunner:
         self.verification = verification
 
     def run(self, command, timeout=30):
+        command = command.replace('/workspace', str(self.workspace))
         if self.verification:
             command = command.replace('/verification', str(self.verification))
         return execute(['sh', '-c', 'cd "$1" && ' + command, 'fixture', str(self.workspace)], timeout)
 
 
 class CoreTests(unittest.TestCase):
-    def test_verification_rejects_zero_tests_and_import_failure(self):
-        baseline = {'exit_code': 1, 'timed_out': False, 'output': 'Ran 3 tests in 0.1s\nFAILED'}
-        candidate = {'exit_code': 0, 'timed_out': False, 'output': 'Ran 3 tests in 0.1s\nOK'}
-        self.assertTrue(verification_passed(baseline, candidate))
-        self.assertFalse(verification_passed(baseline, {**candidate, 'output': 'Ran 0 tests in 0.1s\nOK'}))
-        self.assertFalse(verification_passed({**baseline, 'output': baseline['output'] + 'ImportError'}, candidate))
-        self.assertFalse(verification_passed(baseline, {**candidate, 'output': candidate['output'] + ' (skipped=3)'}))
-
     def test_scripted_repair_and_fresh_verification(self):
         with tempfile.TemporaryDirectory() as tmp:
             folder = Path(tmp)
@@ -46,9 +38,10 @@ class CoreTests(unittest.TestCase):
             report = agent.run('Fix mean')
             self.assertEqual(report['status'], 'candidate')
             self.assertTrue(export_patch(folder / 'workspace', folder / 'patch.diff'))
-            result = verify(source, folder / 'patch.diff', folder / 'fresh',
-                            ROOT / 'examples/tinybug/verification', TrustedFixtureRunner,
-                            'python3 -m unittest discover -s /verification -v')
+            patched_workspace(source, folder / 'patch.diff', folder / 'fresh')
+            result = run_checks(TrustedFixtureRunner(folder / 'fresh', ROOT / 'examples/tinybug/verification'))
+            baseline = run_checks(TrustedFixtureRunner(source, ROOT / 'examples/tinybug/verification'))
+            self.assertEqual(assess(baseline, result)['status'], 'passed')
             self.assertEqual(result['exit_code'], 0, result)
             self.assertEqual((source / 'stats.py').read_text(), before)
             events = [json.loads(line) for line in (folder / 'trace.jsonl').read_text().splitlines()]
