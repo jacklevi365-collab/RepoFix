@@ -1,4 +1,6 @@
-"use strict";
+import { createSubmission } from "./submission.mjs";
+
+("use strict");
 const $ = (id) => document.getElementById(id);
 let catalog = [],
   selectedJob = null,
@@ -267,7 +269,7 @@ async function refreshJob(id) {
           ? "failed"
           : "");
     $("verification-summary").textContent = passed
-      ? "补丁通过独立测试。结果仅限所提供的验证用例。"
+      ? `独立测试 ${result.verification_result?.checks?.tests_run ?? "—"} 项通过；原有回归 ${result.regression_result?.checks?.tests_run ?? "—"} 项无新增失败。结果仅限这些用例。`
       : `${(result.regression?.status === "failed" ? result.regression.reason : null) || result.verification_reason || result.error || result.status || "暂无验证结果"}`;
     const checks = {
       baseline: result.baseline_result?.checks,
@@ -324,6 +326,8 @@ async function viewJob(id) {
   });
   loadJobs().catch(showError);
 }
+const submitJob = createSubmission(api);
+
 function showError(error) {
   $("form-error").textContent = error.message || String(error);
 }
@@ -340,15 +344,12 @@ $("run-form").addEventListener("submit", async (event) => {
       max_steps: Number($("steps").value),
       task_budget: Number($("budget").value),
     };
-    const job = await api("/api/jobs", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Idempotency-Key": crypto.randomUUID(),
-      },
-      body: JSON.stringify(payload),
-    });
-    await viewJob(job.id);
+    const job = await submitJob(payload);
+    try {
+      await viewJob(job.id);
+    } catch (error) {
+      showError(new Error("任务已提交，请刷新记录查看：" + error.message));
+    }
   } catch (error) {
     showError(error);
   } finally {

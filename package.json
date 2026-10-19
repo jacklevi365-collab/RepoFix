@@ -3,8 +3,9 @@
   "version": "0.2.0",
   "private": true,
   "scripts": {
-    "format": "prettier --write \"src/repofix/static/*.{html,css,js}\"",
-    "lint": "prettier --check \"src/repofix/static/*.{html,css,js}\""
+    "format": "prettier --write \"src/repofix/static/*.{html,css,js,mjs}\"",
+    "lint": "prettier --check \"src/repofix/static/*.{html,css,js,mjs}\"",
+    "test": "node --test tests/ui/*.test.mjs"
   },
   "devDependencies": {
     "prettier": "3.6.2"

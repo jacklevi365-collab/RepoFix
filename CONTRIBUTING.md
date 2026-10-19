@@ -10,6 +10,7 @@ PYTHONPATH=src .venv/bin/python -m unittest discover -s tests -v
 .venv/bin/ruff format --check src tests scripts
 npm ci --ignore-scripts
 npm run lint
+npm test
 ```
 
 Docker 验收命令见 CI 工作流：固定脚本演示、人工任务与上游历史任务的参考补丁验证、结构化工具验收、断点恢复验收。所有 CI 检查都不调用付费模型。

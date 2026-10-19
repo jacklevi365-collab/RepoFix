@@ -20,7 +20,7 @@ repofix = "repofix.cli:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-repofix = ["static/*.html", "static/*.css", "static/*.js"]
+repofix = ["static/*.html", "static/*.css", "static/*.js", "static/*.mjs"]
 
 [tool.ruff]
 line-length = 100
