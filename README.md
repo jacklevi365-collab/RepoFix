@@ -123,6 +123,17 @@ python3 -m repofix batch --mode model --task-budget 2 --total-budget 100
 
 批量结果逐项保存，失败任务保留在统计分母中。参考补丁验证与模型实验使用不同的结果类型，防止把系统演示误写为模型指标。
 
+## 上下文策略对照
+
+默认 `--context-mode full` 保留所有历史，提供简单基线；`--context-mode compact` 在上下文接近阈值时缩短较早的工具结果，保留首尾、最新工具轮次和调用配对，完整输出仍保存到轨迹中。压缩不额外调用模型。超过 `--context-bytes` 后明确停止，不静默删除整个调查过程。
+
+```bash
+python3 -m repofix batch --mode model --context-mode full
+python3 -m repofix batch --mode model --context-mode compact
+```
+
+报告记录策略、模型/工具调用数量、token 用量、耗时和压缩事件。需要在相同任务、模型与预算下实测，当前没有压缩策略提高成功率的结论。
+
 ## 开发路线
 
 详细计划见 [docs/roadmap.md](docs/roadmap.md)，设计取舍见 [docs/architecture.md](docs/architecture.md)。先固定模型和任务集，再比较代码定位、上下文管理和测试反馈策略。任何简历指标必须来自保存的真实运行记录。

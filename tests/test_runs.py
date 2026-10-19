@@ -7,6 +7,11 @@ from test_core import ROOT, TrustedFixtureRunner
 
 
 class RunTests(unittest.TestCase):
+    def test_invalid_limits_are_rejected_before_execution(self):
+        for options in ({'context_bytes': 0}, {'task_budget': float('nan')}, {'max_steps': 0}):
+            with self.subTest(options=options), self.assertRaises(ValueError):
+                RunSpec(repo=Path('.'), issue=Path('issue.md'), **options)
+
     def test_task_report_is_reproducible_and_labels_scripted_evidence(self):
         with tempfile.TemporaryDirectory() as tmp, patch('repofix.runs.DockerRunner') as runner:
             runner.side_effect = lambda path, image, verification=None: TrustedFixtureRunner(path, verification)
@@ -20,4 +25,7 @@ class RunTests(unittest.TestCase):
             self.assertEqual(len(report['issue_sha256']), 64)
             self.assertGreater(report['duration_seconds'], 0)
             self.assertEqual(report['estimated_cost_rmb'], 0)
+            self.assertEqual(report['model_responses'], 5)
+            self.assertEqual(report['tool_calls'], 4)
+            self.assertEqual(report['usage']['total_tokens'], 0)
             self.assertTrue((Path(report['output']) / 'report.json').is_file())

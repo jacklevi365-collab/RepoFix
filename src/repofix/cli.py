@@ -34,6 +34,7 @@ def main():
     batch.add_argument('--task-budget', type=positive, default=2.0)
     batch.add_argument('--total-budget', type=positive, default=100.0)
     batch.add_argument('--env-file', type=Path, default=Path('.env'))
+    batch.add_argument('--context-mode', choices=['full', 'compact'], default='full')
     run = sub.add_parser('run')
     run.add_argument('--repo', type=Path, required=True)
     run.add_argument('--issue', type=Path, required=True)
@@ -45,6 +46,8 @@ def main():
     run.add_argument('--demo', action='store_true', help='Scripted tinybug fixture; no model calls')
     run.add_argument('--verification', type=Path)
     run.add_argument('--env-file', type=Path, default=Path('.env'))
+    run.add_argument('--context-mode', choices=['full', 'compact'], default='full')
+    run.add_argument('--context-bytes', type=int, default=100000)
     args = parser.parse_args()
     try:
         if args.action == 'doctor':

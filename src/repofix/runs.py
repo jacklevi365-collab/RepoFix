@@ -1,6 +1,7 @@
 """Reusable task lifecycle for CLI, experiments and the local API."""
 import hashlib
 import json
+import math
 import time
 import uuid
 from dataclasses import dataclass
@@ -29,9 +30,23 @@ class RunSpec:
     verification: Path | None = None
     env_file: Path = Path('.env')
     task_id: str | None = None
+    context_mode: str = 'full'
+    context_bytes: int = 100000
+
+    def __post_init__(self):
+        for name in ('repo', 'issue', 'output', 'env_file'):
+            setattr(self, name, Path(getattr(self, name)))
+        if self.verification is not None:
+            self.verification = Path(self.verification)
+        if self.max_steps < 1 or self.context_bytes < 1:
+            raise ValueError('Step and context limits must be positive')
+        if self.context_mode not in {'full', 'compact'}:
+            raise ValueError('Unsupported context mode')
+        if not all(math.isfinite(value) and value > 0 for value in (self.task_budget, self.total_budget)):
+            raise ValueError('Budget limits must be finite and positive')
 
 
-def run_task(spec):
+def run_task(spec, on_event=None):
     DockerRunner.check(spec.image)
     issue = Path(spec.issue).read_text()
     if len(issue.encode()) > 32000 or spec.max_steps < 1:
@@ -74,7 +89,9 @@ def run_task(spec):
             report['config'].update(input_rmb_per_million=provider.input_price,
                                     output_rmb_per_million=provider.output_price,
                                     max_output_tokens=provider.max_tokens, thinking='disabled')
-        agent = Agent(provider, factory(folder / 'workspace'), folder / 'trace.jsonl', spec.max_steps)
+        report['config'].update(context_mode=spec.context_mode, context_bytes=spec.context_bytes)
+        agent = Agent(provider, factory(folder / 'workspace'), folder / 'trace.jsonl', spec.max_steps,
+                      context_bytes=spec.context_bytes, context_mode=spec.context_mode, on_event=on_event)
         report.update(agent.run(issue))
         changed = export_patch(folder / 'workspace', folder / 'patch.diff')
         report['has_patch'] = changed
@@ -101,6 +118,13 @@ def _finish(folder, report, ledger, started):
     report['estimated_cost_rmb'] = ledger.spent(report['run_id'])
     report['duration_seconds'] = round(time.monotonic() - started, 3)
     report['completed_at'] = datetime.now(timezone.utc).isoformat()
+    trace = folder / 'trace.jsonl'
+    events = [json.loads(line) for line in trace.read_text().splitlines()] if trace.exists() else []
+    model_events = [event for event in events if event['kind'] == 'model']
+    report['model_responses'] = len(model_events)
+    report['tool_calls'] = sum(event['kind'] == 'tool' for event in events)
+    report['usage'] = {key: sum(event.get('usage', {}).get(key, 0) for event in model_events)
+                       for key in ('prompt_tokens', 'completion_tokens', 'total_tokens')}
     report['resolved'] = report['status'] == 'candidate' and report['verification'] == 'passed'
     if (folder / 'workspace' / '.git').is_dir() and not (folder / 'patch.diff').exists():
         try:
