@@ -75,7 +75,7 @@ def run_task(spec, on_event=None, resume_folder=None):
 
 
 def _run_task(spec, on_event, resume_folder, folder):
-    DockerRunner.check(spec.image)
+    image_info = DockerRunner.check(spec.image)
     issue = Path(spec.issue).read_text()
     if len(issue.encode()) > 32000 or spec.max_steps < 1:
         raise ValueError("Issue must be at most 32 KB and max_steps must be positive")
@@ -95,6 +95,10 @@ def _run_task(spec, on_event, resume_folder, folder):
         run_id = folder.name
         output = folder.parent
         report = json.loads((folder / "report.json").read_text())
+        if isinstance(image_info, dict) and report.get("environment", {}).get(
+            "image_id"
+        ) != image_info.get("image_id"):
+            raise UnsafeResume("Docker image changed; restore the recorded image before resuming")
         report.update(
             status="error",
             verification="not_run",
@@ -143,6 +147,9 @@ def _run_task(spec, on_event, resume_folder, folder):
                 "total_budget_rmb": spec.total_budget,
             },
         }
+    report["environment"] = (
+        image_info if isinstance(image_info, dict) else {"image_tag": spec.image}
+    )
     ledger = Ledger(output / "budget.sqlite", spec.total_budget)
     started = time.monotonic()
 

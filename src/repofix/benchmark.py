@@ -123,7 +123,9 @@ def run_batch(
                     )
                 )
             else:
-                DockerRunner.check(task["image"])
+                environment = DockerRunner.check(task["image"])
+                if isinstance(environment, dict):
+                    result["environment"] = environment
                 task_folder = folder / task["id"]
 
                 def factory(path, verification=None):

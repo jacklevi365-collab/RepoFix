@@ -101,7 +101,7 @@ python3 -m repofix budget --output runs
 - `workspace/`：隔离的仓库副本，原仓库不修改。
 - `trace.jsonl`：模型回复、usage 和工具执行结果，不保存 API key。
 - `patch.diff`：包含新增文件的 Git 补丁。
-- `report.json`：候选状态、独立测试结果、费用估算、耗时、代码树与 Issue 指纹、模型配置和停止原因。
+- `report.json`：候选状态、独立测试结果、费用估算、耗时、代码树与 Issue 指纹、镜像 ID/摘要、模型配置和停止原因。
 
 报告使用 `evidence_type=scripted/model` 标记证据来源；`resolved` 只在存在候选补丁、独立测试通过且没有新回归失败时为真。脚本演示的 resolved 不可计入模型成功率。任务执行入口为 `runs.RunSpec` 与 `runs.run_task`，CLI 和后续服务复用同一生命周期。
 
@@ -166,9 +166,9 @@ python3 -m repofix resume --run-dir runs/<任务目录> --max-steps 24
 PYTHONPATH=src python3 scripts/resume_smoke.py  # 零模型请求的恢复验收
 ```
 
-如果中断时一轮 API/工具可能尚未结束，程序会拒绝自动恢复，保留预留费用并要求先检查轨迹。并发恢复、独立测试被修改、模型或计费配置变化也会被拒绝。恢复使用冻结的原始代码提交生成验证副本，避免原输入目录变化或基线测试副作用影响结论。`duration_seconds` 为本次执行段耗时，`wall_duration_seconds` 为包含中断间隔的总墙钟时间。
+如果中断时一轮 API/工具可能尚未结束，程序会拒绝自动恢复，保留预留费用并要求先检查轨迹。并发恢复、独立测试被修改、模型、计费配置或实际 Docker 镜像变化也会被拒绝。恢复使用冻结的原始代码提交生成验证副本，避免原输入目录变化或基线测试副作用影响结论。`duration_seconds` 为本次执行段耗时，`wall_duration_seconds` 为包含中断间隔的总墙钟时间。
 
-服务重启仍将队列任务标为 `interrupted`，不会自动发起恢复；可以用 CLI 对已知安全轮次继续执行。旧版本未产生检查点的任务不支持恢复。
+服务重启仍将队列任务标为 `interrupted`，不会自动发起恢复；可以用 CLI 对已知安全轮次继续执行。旧版本缺少检查点或环境指纹的任务不保证可恢复。
 
 ## 结构化工具
 

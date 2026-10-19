@@ -1,4 +1,5 @@
 import os
+import json
 import subprocess
 import uuid
 from pathlib import Path
@@ -17,11 +18,15 @@ class DockerRunner:
         if result["exit_code"]:
             raise RuntimeError("Docker daemon unavailable. Start Docker Desktop first.")
         if image:
-            result = execute(["docker", "image", "inspect", image], timeout=10)
+            template = '{"image_id":{{json .Id}},"repo_digests":{{json .RepoDigests}},"architecture":{{json .Architecture}}}'
+            result = execute(
+                ["docker", "image", "inspect", "--format", template, image], timeout=10
+            )
             if result["exit_code"]:
                 raise RuntimeError(
                     f"Docker image unavailable locally: {image}. Pull or build it before running tasks."
                 )
+            return json.loads(result["output"])
 
     def run(self, command, timeout=30):
         name = "repofix-" + uuid.uuid4().hex

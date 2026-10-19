@@ -6,6 +6,7 @@ from pathlib import Path
 from unittest.mock import patch
 from repofix.runs import RunSpec, run_task, resume_task
 from repofix.provider import ScriptedDemo
+from repofix.checkpoint import UnsafeResume
 from test_core import ROOT, TrustedFixtureRunner
 
 
@@ -167,3 +168,23 @@ class RunTests(unittest.TestCase):
             self.assertEqual(result["status"], "budget_limit")
             self.assertAlmostEqual(result["estimated_cost_rmb"], 0.6)
             self.assertEqual(result["tool_calls"], 1)
+
+    def test_resume_refuses_a_changed_docker_image(self):
+        with tempfile.TemporaryDirectory() as tmp, patch("repofix.runs.DockerRunner") as runner:
+            runner.side_effect = lambda path, image, verification=None: TrustedFixtureRunner(
+                path, verification
+            )
+            runner.check.return_value = {"image_id": "first-image"}
+            first = run_task(
+                RunSpec(
+                    repo=ROOT / "examples/tinybug/repo",
+                    issue=ROOT / "examples/tinybug/issue.md",
+                    output=Path(tmp),
+                    demo=True,
+                    max_steps=1,
+                )
+            )
+            runner.check.return_value = {"image_id": "changed-image"}
+            with self.assertRaises(UnsafeResume):
+                resume_task(first["output"], max_steps=5)
+            self.assertEqual(first["environment"]["image_id"], "first-image")
