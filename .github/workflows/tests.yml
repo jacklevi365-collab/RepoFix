@@ -57,3 +57,15 @@ jobs:
       - run: npm ci --ignore-scripts
       - run: npm run lint
       - run: npm test
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip wheel --no-deps --wheel-dir dist .
+      - run: python scripts/check_wheel.py dist/*.whl
+      - run: python -m venv /tmp/repofix-install
+      - run: /tmp/repofix-install/bin/python -m pip install --no-deps dist/*.whl
+      - run: /tmp/repofix-install/bin/repofix --help

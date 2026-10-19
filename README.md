@@ -42,7 +42,9 @@ python3 -m repofix run \
   --demo
 ```
 
-也可以使用 `python3 -m pip install -e .` 安装 `repofix` 命令。
+也可以使用 `python3 -m pip install -e .` 安装 `repofix` 命令。安装包包含核心模块和静态资源；工作台的任务集随源码仓库提供，需从仓库根目录启动，或通过 `serve --root` 指定该目录。
+
+常用命令已封装为 `make setup`、`make serve`、`make demo`；前端无需构建。只有开发格式检查才需要 `make setup-ui` 安装 Node 工具。
 
 ## 付费前预检
 
