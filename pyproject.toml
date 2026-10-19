@@ -21,3 +21,11 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 repofix = ["static/*.html", "static/*.css", "static/*.js"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = ["benchmarks", "work", "runs", ".venv", "node_modules"]
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F"]

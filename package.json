@@ -1,0 +1,12 @@
+{
+  "name": "repofix-workbench",
+  "version": "0.2.0",
+  "private": true,
+  "scripts": {
+    "format": "prettier --write \"src/repofix/static/*.{html,css,js}\"",
+    "lint": "prettier --check \"src/repofix/static/*.{html,css,js}\""
+  },
+  "devDependencies": {
+    "prettier": "3.6.2"
+  }
+}

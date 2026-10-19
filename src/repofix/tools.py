@@ -1,28 +1,83 @@
 """Structured repository tools executed entirely inside the Docker sandbox."""
+
 import json
 import shlex
 
-SHELL = {'type':'function','function':{'name':'shell','description':'Run a shell command in the isolated repository container. Use for tests and commands not covered by structured tools. No network; bounded output.',
-    'parameters':{'type':'object','properties':{'command':{'type':'string'}},'required':['command'],'additionalProperties':False}}}
+SHELL = {
+    "type": "function",
+    "function": {
+        "name": "shell",
+        "description": "Run a shell command in the isolated repository container. Use for tests and commands not covered by structured tools. No network; bounded output.",
+        "parameters": {
+            "type": "object",
+            "properties": {"command": {"type": "string"}},
+            "required": ["command"],
+            "additionalProperties": False,
+        },
+    },
+}
 
 
 def schema(name, description, properties, required):
-    return {'type':'function','function':{'name':name,'description':description,'parameters':{
-        'type':'object','properties':properties,'required':required,'additionalProperties':False}}}
+    return {
+        "type": "function",
+        "function": {
+            "name": name,
+            "description": description,
+            "parameters": {
+                "type": "object",
+                "properties": properties,
+                "required": required,
+                "additionalProperties": False,
+            },
+        },
+    }
 
 
 STRUCTURED = [
-    schema('list_files','List repository files, excluding environment files, caches and Git internals.',
-           {'path':{'type':'string'},'limit':{'type':'integer','minimum':1,'maximum':200}},[]),
-    schema('read_file','Read a bounded range of a UTF-8 source file with line numbers.',
-           {'path':{'type':'string'},'start_line':{'type':'integer','minimum':1},'line_count':{'type':'integer','minimum':1,'maximum':200}},['path']),
-    schema('search_text','Find a literal string in source files; returns paths and line numbers. Search is case-sensitive.',
-           {'query':{'type':'string'},'path':{'type':'string'},'limit':{'type':'integer','minimum':1,'maximum':100}},['query']),
-    schema('replace_text','Replace an exact source fragment only when its occurrence count matches expected_count. Read the file first. Existing tests and configurations must remain unchanged.',
-           {'path':{'type':'string'},'old':{'type':'string'},'new':{'type':'string'},'expected_count':{'type':'integer','minimum':1,'maximum':20}},['path','old','new']),
+    schema(
+        "list_files",
+        "List repository files, excluding environment files, caches and Git internals.",
+        {
+            "path": {"type": "string"},
+            "limit": {"type": "integer", "minimum": 1, "maximum": 200},
+        },
+        [],
+    ),
+    schema(
+        "read_file",
+        "Read a bounded range of a UTF-8 source file with line numbers.",
+        {
+            "path": {"type": "string"},
+            "start_line": {"type": "integer", "minimum": 1},
+            "line_count": {"type": "integer", "minimum": 1, "maximum": 200},
+        },
+        ["path"],
+    ),
+    schema(
+        "search_text",
+        "Find a literal string in source files; returns paths and line numbers. Search is case-sensitive.",
+        {
+            "query": {"type": "string"},
+            "path": {"type": "string"},
+            "limit": {"type": "integer", "minimum": 1, "maximum": 100},
+        },
+        ["query"],
+    ),
+    schema(
+        "replace_text",
+        "Replace an exact source fragment only when its occurrence count matches expected_count. Read the file first. Existing tests and configurations must remain unchanged.",
+        {
+            "path": {"type": "string"},
+            "old": {"type": "string"},
+            "new": {"type": "string"},
+            "expected_count": {"type": "integer", "minimum": 1, "maximum": 20},
+        },
+        ["path", "old", "new"],
+    ),
 ]
 
-PROGRAM = r'''
+PROGRAM = r"""
 import json,os,sys
 from pathlib import Path
 name,args=json.loads(sys.argv[1])
@@ -101,30 +156,43 @@ try:
 except Exception as exc:
     print(json.dumps({'error':type(exc).__name__+': '+str(exc)}))
     sys.exit(1)
-'''
+"""
 
 
 class RepositoryTools:
-    def __init__(self, runner, mode='shell'):
-        if mode not in {'shell','structured'}:
-            raise ValueError('Unsupported tool mode')
-        self.runner=runner
-        self.schemas=[SHELL] + (STRUCTURED if mode=='structured' else [])
-        self.allowed={item['function']['name']:item['function']['parameters'] for item in self.schemas}
+    def __init__(self, runner, mode="shell"):
+        if mode not in {"shell", "structured"}:
+            raise ValueError("Unsupported tool mode")
+        self.runner = runner
+        self.schemas = [SHELL] + (STRUCTURED if mode == "structured" else [])
+        self.allowed = {
+            item["function"]["name"]: item["function"]["parameters"] for item in self.schemas
+        }
 
-    def execute(self,name,args):
-        if name not in self.allowed or not isinstance(args,dict):
-            raise ValueError('Unknown tool or malformed arguments')
-        specification=self.allowed[name]
-        if set(args)-set(specification['properties']) or set(specification['required'])-set(args):
-            raise ValueError('Unexpected or missing tool arguments')
-        for key,value in args.items():
-            field=specification['properties'][key]
-            if field['type']=='string' and not isinstance(value,str):
-                raise ValueError('Expected string: '+key)
-            if field['type']=='integer' and (type(value) is not int or value<field.get('minimum',0) or value>field.get('maximum',10**9)):
-                raise ValueError('Invalid integer: '+key)
-        if name=='shell':
-            return self.runner.run(args['command'])
-        command='python -I -c '+shlex.quote(PROGRAM)+' '+shlex.quote(json.dumps([name,args],ensure_ascii=False))
+    def execute(self, name, args):
+        if name not in self.allowed or not isinstance(args, dict):
+            raise ValueError("Unknown tool or malformed arguments")
+        specification = self.allowed[name]
+        if set(args) - set(specification["properties"]) or set(specification["required"]) - set(
+            args
+        ):
+            raise ValueError("Unexpected or missing tool arguments")
+        for key, value in args.items():
+            field = specification["properties"][key]
+            if field["type"] == "string" and not isinstance(value, str):
+                raise ValueError("Expected string: " + key)
+            if field["type"] == "integer" and (
+                type(value) is not int
+                or value < field.get("minimum", 0)
+                or value > field.get("maximum", 10**9)
+            ):
+                raise ValueError("Invalid integer: " + key)
+        if name == "shell":
+            return self.runner.run(args["command"])
+        command = (
+            "python -I -c "
+            + shlex.quote(PROGRAM)
+            + " "
+            + shlex.quote(json.dumps([name, args], ensure_ascii=False))
+        )
         return self.runner.run(command)

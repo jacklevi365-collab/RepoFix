@@ -7,3 +7,4 @@ runs/
 build/
 dist/
 work/
+node_modules/
