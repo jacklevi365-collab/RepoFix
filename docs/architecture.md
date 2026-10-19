@@ -9,6 +9,7 @@
 | `sandbox.py` | 一次性 Docker 容器与超时清理 |
 | `workspace.py` | 原仓库快照、Git 补丁、干净副本与测试完整性检查 |
 | `evaluation.py` | 独立 unittest 执行、用例身份校验与结果分类 |
+| `preflight.py` | 付费调用前检查依赖导入、测试收集与原版本失败 |
 | `budget.py` | SQLite 事务预留与 usage 结算 |
 | `cli.py` | 配置、任务生命周期与 JSON 报告 |
 

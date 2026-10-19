@@ -19,7 +19,7 @@ try:
     cases = list(flatten(suite))
     ids = [case.id() for case in cases]
     collection_errors = list(unittest.defaultTestLoader.errors)
-    result = unittest.TextTestRunner(verbosity=2).run(suite)
+    result = unittest.TextTestRunner(stream=sys.stdout, verbosity=2).run(suite)
     report = {
         'test_ids': ids, 'tests_run': result.testsRun,
         'failures': [case.id() for case, _ in result.failures],
@@ -31,7 +31,7 @@ try:
     }
 except Exception as exc:
     report = {'collection_errors': [type(exc).__name__ + ': ' + str(exc)]}
-print('REPOFIX_RESULT=' + json.dumps(report), flush=True)
+print('\nREPOFIX_RESULT=' + json.dumps(report), flush=True)
 sys.exit(0 if report.get('successful') else 1)
 '''
 COMMAND = 'python -I -c ' + shlex.quote(HARNESS)

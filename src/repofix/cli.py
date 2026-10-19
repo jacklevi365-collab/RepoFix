@@ -10,6 +10,11 @@ from .provider import DeepSeek, ScriptedDemo
 from .sandbox import DockerRunner
 from .workspace import export_patch, snapshot, patched_workspace, integrity_violations
 from .evaluation import run_checks, assess
+from .preflight import prepare_baseline
+
+
+class PreflightFailed(RuntimeError):
+    """A structured preflight failure has already been recorded."""
 
 
 def positive(value):
@@ -23,6 +28,11 @@ def main():
     parser = argparse.ArgumentParser(description='RepoFix Python issue repair agent')
     sub = parser.add_subparsers(dest='action', required=True)
     sub.add_parser('doctor', help='Check Docker daemon; does not invoke the model')
+    preflight = sub.add_parser('preflight', help='Check reproducible test failure without model calls')
+    preflight.add_argument('--repo', type=Path, required=True)
+    preflight.add_argument('--verification', type=Path, required=True)
+    preflight.add_argument('--image', default='python:3.11-slim')
+    preflight.add_argument('--output', type=Path, default=Path('runs'))
     run = sub.add_parser('run')
     run.add_argument('--repo', type=Path, required=True)
     run.add_argument('--issue', type=Path, required=True)
@@ -35,9 +45,23 @@ def main():
     run.add_argument('--verification', type=Path)
     args = parser.parse_args()
     try:
-        DockerRunner.check()
         if args.action == 'doctor':
+            DockerRunner.check()
             print('Docker daemon available. Prepare the chosen image before running tasks.')
+            return
+        DockerRunner.check(args.image)
+        if args.action == 'preflight':
+            if not args.verification.is_dir():
+                raise ValueError('Verification directory does not exist')
+            folder = args.output.resolve() / ('preflight-' + uuid.uuid4().hex[:12])
+            folder.mkdir(parents=True)
+            factory = lambda path, verification=None: DockerRunner(path, args.image, verification)
+            result = prepare_baseline(args.repo, args.verification, folder / 'baseline', factory)
+            result['estimated_cost_rmb'] = 0
+            (folder / 'report.json').write_text(json.dumps(result, ensure_ascii=False, indent=2))
+            print(json.dumps({'output': str(folder), **result}, ensure_ascii=False, indent=2))
+            if not result['ready']:
+                raise SystemExit(1)
             return
         if args.max_steps < 1:
             raise ValueError('--max-steps must be positive')
@@ -58,6 +82,15 @@ def main():
         factory = lambda path, verification=None: DockerRunner(path, args.image, verification)
         try:
             snapshot(args.repo, folder / 'workspace')
+            baseline = None
+            if args.verification:
+                precheck = prepare_baseline(args.repo, args.verification, folder / 'baseline', factory)
+                baseline = precheck['baseline_result']
+                report['baseline_result'] = baseline
+                report['preflight'] = {key: value for key, value in precheck.items() if key != 'baseline_result'}
+                if not precheck['ready']:
+                    report.update(status='preflight_failed', verification_reason=precheck['reason'])
+                    raise PreflightFailed(precheck['reason'])
             agent = Agent(provider, factory(folder / 'workspace'), folder / 'trace.jsonl', args.max_steps)
             report.update(agent.run(issue))
             changed = export_patch(folder / 'workspace', folder / 'patch.diff')
@@ -69,14 +102,14 @@ def main():
             if violations:
                 report.update(status='policy_violation', verification='not_run')
             elif changed and args.verification:
-                snapshot(args.repo, folder / 'baseline')
-                baseline = run_checks(factory(folder / 'baseline', args.verification))
                 patched_workspace(args.repo, folder / 'patch.diff', folder / 'verification-workspace')
                 result = run_checks(factory(folder / 'verification-workspace', args.verification))
                 assessment = assess(baseline, result)
                 report['baseline_result'], report['verification_result'] = baseline, result
                 report['verification'] = assessment['status']
                 report['verification_reason'] = assessment['reason']
+        except PreflightFailed:
+            pass
         except BudgetExceeded as exc:
             report.update(status='budget_limit', error=str(exc))
         except Exception as exc:

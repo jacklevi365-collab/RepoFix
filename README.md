@@ -42,6 +42,18 @@ python3 -m repofix run \
 
 也可以使用 `python3 -m pip install -e .` 安装 `repofix` 命令。
 
+## 付费前预检
+
+不需要 API key，先验证镜像存在、测试能够收集，并且原始仓库确实复现失败：
+
+```bash
+python3 -m repofix preflight \
+  --repo examples/tinybug/repo \
+  --verification examples/tinybug/verification
+```
+
+`ready=true` 表示可以开始修复；零测试、依赖导入失败、原版本已经通过测试都会返回非零退出码和具体原因，报告写入 `runs/preflight-*/report.json`。`run --verification ...` 也会在第一次模型请求前自动执行同样的预检；失败时状态为 `preflight_failed`，模型请求数为零。未提供独立验证目录时，运行仅检查 Docker 和镜像，不证明问题可以复现。
+
 ## 使用真实 DeepSeek
 
 参考 [DeepSeek 工具调用文档](https://api-docs.deepseek.com/guides/tool_calls/)。模型名称可配置；默认使用文档示例中的 `deepseek-flash`，并显式关闭 thinking。上线前确认账户可用模型及当前价格。

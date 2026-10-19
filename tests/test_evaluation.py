@@ -14,6 +14,15 @@ def result(successful, ids=('a', 'b'), **changes):
 
 
 class EvaluationTests(unittest.TestCase):
+    def test_test_output_without_newline_does_not_hide_result_record(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / 'repo').mkdir()
+            (root / 'checks').mkdir()
+            (root / 'checks/test_case.py').write_text('import unittest\nclass T(unittest.TestCase):\n def test_ok(self): print("progress", end="")\n')
+            run = run_checks(TrustedFixtureRunner(root / 'repo', root / 'checks'))
+            self.assertEqual(run['checks']['tests_run'], 1)
+
     def test_same_count_different_cases_is_rejected(self):
         self.assertEqual(assess(result(False), result(True, ('a', 'c')))['reason'], 'test_set_changed')
 
