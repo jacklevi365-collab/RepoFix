@@ -89,7 +89,9 @@ python3 -m repofix run \
 - `workspace/`：隔离的仓库副本，原仓库不修改。
 - `trace.jsonl`：模型回复、usage 和工具执行结果，不保存 API key。
 - `patch.diff`：包含新增文件的 Git 补丁。
-- `report.json`：候选状态、独立测试结果、费用估算和停止原因。
+- `report.json`：候选状态、独立测试结果、费用估算、耗时、代码树与 Issue 指纹、模型配置和停止原因。
+
+报告使用 `evidence_type=scripted/model` 标记证据来源；`resolved` 只在存在候选补丁且独立测试通过时为真。脚本演示的 resolved 不可计入模型成功率。任务执行入口为 `runs.RunSpec` 与 `runs.run_task`，CLI 和后续服务复用同一生命周期。
 
 `candidate` 仅表示模型结束并提交了修改；`verification=passed` 表示原始版本在提供的独立检查中失败，而干净副本应用补丁后通过。它不证明一般正确性。未提供独立测试则为 `not_run`。预算、步数、上下文超限有各自状态；失败时尽量保留已有补丁。
 

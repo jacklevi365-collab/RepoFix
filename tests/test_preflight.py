@@ -39,7 +39,7 @@ class PreflightTests(unittest.TestCase):
         output = Path(self.tmp.name) / 'runs'
         argv = ['repofix', 'run', '--repo', str(repo), '--issue', str(issue),
                 '--verification', str(checks), '--output', str(output)]
-        with patch('sys.argv', argv), patch('repofix.cli.DockerRunner') as runner, patch('repofix.cli.DeepSeek') as provider:
+        with patch('sys.argv', argv), patch('repofix.runs.DockerRunner') as runner, patch('repofix.runs.DeepSeek') as provider:
             provider.return_value.model = 'fake-deepseek'
             runner.side_effect = lambda path, image, verification=None: TrustedFixtureRunner(path, verification)
             with patch('builtins.print'), self.assertRaises(SystemExit) as exit:
