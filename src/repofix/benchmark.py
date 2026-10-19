@@ -33,6 +33,12 @@ def load_manifest(path):
             task[field] = (path.parent / task[field]).resolve()
             if not task[field].exists():
                 raise ValueError('Missing task file or directory: ' + field)
+        for relative, expected in task.get('source', {}).get('files_sha256', {}).items():
+            file = (task['repo'] / relative).resolve()
+            if task['repo'] not in file.parents or not file.is_file():
+                raise ValueError('Invalid pinned source path')
+            if hashlib.sha256(file.read_bytes()).hexdigest() != expected:
+                raise ValueError('Pinned task source was modified: ' + name)
         task.setdefault('image', 'python:3.11-slim')
         tasks.append(task)
     data['tasks'] = tasks
@@ -94,6 +100,8 @@ def run_batch(manifest, output=Path('runs'), mode='preflight', task_ids=None,
                     result['resolved'] = result['status'] == 'validated'
         except Exception as exc:
             result.update(status='error', error=f'{type(exc).__name__}: {exc}')
+        if task.get('source'):
+            result['source'] = {key: value for key, value in task['source'].items() if key != 'files_sha256'}
         result['duration_seconds'] = round(time.monotonic() - started, 3)
         results.append(result)
         # Persist partial results after every task so interrupted experiments are inspectable.

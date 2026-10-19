@@ -124,7 +124,7 @@ PYTHONPATH=src .venv/bin/python -m repofix serve
 
 ## 批量评测
 
-已包含五个带参考补丁和独立测试的人工开发任务，详见 [benchmarks/README.md](benchmarks/README.md)。
+已包含五个人工开发任务，以及三个固定版本、保留 MIT 许可证的 more-itertools 历史回归任务。每项任务都有参考补丁和独立测试，真实历史任务还记录父提交及源码 SHA-256。详见 [任务协议](benchmarks/README.md) 与 [历史任务说明](benchmarks/real/README.md)。
 
 ```bash
 python3 -m repofix batch --mode preflight

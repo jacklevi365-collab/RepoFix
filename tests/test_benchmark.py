@@ -8,6 +8,15 @@ from test_core import ROOT, TrustedFixtureRunner
 
 
 class BenchmarkTests(unittest.TestCase):
+    def test_three_pinned_upstream_regressions_are_valid(self):
+        with tempfile.TemporaryDirectory() as tmp, patch('repofix.benchmark.DockerRunner') as runner:
+            runner.side_effect = lambda path, image, verification=None: TrustedFixtureRunner(path, verification)
+            report=run_batch(ROOT / 'benchmarks/real/manifest.json',Path(tmp),mode='reference')
+            self.assertEqual(report['summary']['passed_count'],3)
+            self.assertEqual(report['provenance'],'public-upstream-history')
+            self.assertIsNone(report['summary']['model_success_rate'])
+            self.assertTrue(all(item['source']['base_commit'] for item in report['results']))
+
     def test_all_reference_patches_reproduce_and_fix_the_development_tasks(self):
         manifest = ROOT / 'benchmarks/dev/manifest.json'
         with tempfile.TemporaryDirectory() as tmp, patch('repofix.benchmark.DockerRunner') as runner:

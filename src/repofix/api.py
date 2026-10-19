@@ -30,7 +30,13 @@ def create_app(root=None, output=None, executor=run_task):
     output = Path(output or root / 'runs').resolve()
     output.mkdir(parents=True, exist_ok=True)
     store = JobStore(output / 'jobs.sqlite')
-    catalog = {item['id']: item for item in load_manifest(root / 'benchmarks/dev/manifest.json')['tasks']}
+    catalog = {}
+    for filename in ('benchmarks/dev/manifest.json','benchmarks/real/manifest.json'):
+        path=root / filename
+        if path.exists():
+            dataset=load_manifest(path)
+            catalog.update({item['id']:{**item,'provenance':dataset.get('provenance'),'split':dataset['split']}
+                            for item in dataset['tasks']})
     catalog['demo-tinybug'] = {'repo': root / 'examples/tinybug/repo',
         'issue': root / 'examples/tinybug/issue.md', 'verification': root / 'examples/tinybug/verification',
         'image': 'python:3.11-slim'}
@@ -114,7 +120,8 @@ def create_app(root=None, output=None, executor=run_task):
     @app.get('/api/catalog')
     def tasks():
         return [{'id':name,'description':task['issue'].read_text(),
-                 'demo_available':name=='demo-tinybug', 'provenance':'synthetic-development'}
+                 'demo_available':name=='demo-tinybug', 'provenance':task.get('provenance','scripted-demo'),
+                 'split':task.get('split','demonstration')}
                 for name,task in catalog.items()]
 
     @app.get('/api/jobs')

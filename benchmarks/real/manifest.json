@@ -1,0 +1,90 @@
+{
+  "schema_version": 1,
+  "name": "repofix-upstream-regressions-v1",
+  "split": "evaluation",
+  "provenance": "public-upstream-history",
+  "description": "三个来自 more-itertools 公开历史修复的固定版本回归任务。独立测试由 RepoFix 重建，不能当作 SWE-bench，也不能排除模型记忆。",
+  "tasks": [
+    {
+      "id": "bucket-false-validator",
+      "repo": "bucket-false-validator/repo",
+      "issue": "bucket-false-validator/issue.md",
+      "verification": "bucket-false-validator/verification",
+      "reference_patch": "bucket-false-validator/reference.patch",
+      "image": "python:3.11-slim",
+      "source": {
+        "repository": "https://github.com/more-itertools/more-itertools",
+        "base_commit": "1ea82a711c69f590054987b5cb194157f8ce8ac4",
+        "fix_commit": "67fcf640477c78605580f5ee703a54c73c1e7a8a",
+        "fix_url": "https://github.com/more-itertools/more-itertools/commit/67fcf640477c78605580f5ee703a54c73c1e7a8a",
+        "license": "MIT",
+        "files_sha256": {
+          "LICENSE": "09f1c8c9e941af3e584d59641ea9b87d83c0cb0fd007eb5ef391a7e2643c1a46",
+          "README.rst": "6a5dad4de3ffc03544d72a70cc876e15565b250231557b566f967965d4dd1c5f",
+          "more_itertools/__init__.py": "19cb2d318e8d45eb7d56136a55f1452c9469d21597571c31d752aa8232a2c07b",
+          "more_itertools/more.py": "bc51d6f1c05613084fb566a8310771ab946864f0bb4815d26d4c6bb8d44bf9ff",
+          "more_itertools/recipes.py": "ea9ac19767d3949d72bd0fc24f51aff33f24a693201b5d8e595a0d58ef8f4b1c",
+          "pyproject.toml": "cf131f8e1bffabdfdfc9f610ae08da753ed111c460188b5c221697bc0f526b4a",
+          "setup.cfg": "309de2d8409ea9c61b8cd1509a70ef7727184a549f8bd86562fd7ff8ff74b67f",
+          "tests/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tests/test_more.py": "0cd2fcebc8b1d801bebeb8bea4a77ef105f5afc4c6cc16ac29fcad24ce0136cf",
+          "tests/test_recipes.py": "3bd29d44e99492ea8d720593fa0778b35edd933321de18dc6ebf8f24192a6dc4"
+        }
+      }
+    },
+    {
+      "id": "value-chain-typeerror",
+      "repo": "value-chain-typeerror/repo",
+      "issue": "value-chain-typeerror/issue.md",
+      "verification": "value-chain-typeerror/verification",
+      "reference_patch": "value-chain-typeerror/reference.patch",
+      "image": "python:3.11-slim",
+      "source": {
+        "repository": "https://github.com/more-itertools/more-itertools",
+        "base_commit": "bc8be1013ac90fe3c1df8aae646b02605d578818",
+        "fix_commit": "7847d4324a581da8d0919734a8e50b2a6573b780",
+        "fix_url": "https://github.com/more-itertools/more-itertools/commit/7847d4324a581da8d0919734a8e50b2a6573b780",
+        "license": "MIT",
+        "files_sha256": {
+          "LICENSE": "09f1c8c9e941af3e584d59641ea9b87d83c0cb0fd007eb5ef391a7e2643c1a46",
+          "README.rst": "94a39a3f8ed00bbc7f3d1f90f0b2dec5193b5ace648195825142ef508ae4e8ce",
+          "more_itertools/__init__.py": "19cb2d318e8d45eb7d56136a55f1452c9469d21597571c31d752aa8232a2c07b",
+          "more_itertools/more.py": "5c28cfa80aa7f79a5a7108039340e590bfccb4ff4cf62d325edcef73b42ac2e3",
+          "more_itertools/recipes.py": "2ea5bb0671811ac8d1a419b05a8086354d334e46a2f9779d24e728ffcba67fc9",
+          "pyproject.toml": "cf131f8e1bffabdfdfc9f610ae08da753ed111c460188b5c221697bc0f526b4a",
+          "setup.cfg": "309de2d8409ea9c61b8cd1509a70ef7727184a549f8bd86562fd7ff8ff74b67f",
+          "tests/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tests/test_more.py": "8aeef970c344c654f98c05541df08c69e0cdf099fc2a40e6d56c14529003c928",
+          "tests/test_recipes.py": "7fc5821bf9b074c01ce4c3515a2fc2cd6f3b7cb949aa731410509df76c077fc6"
+        }
+      }
+    },
+    {
+      "id": "split-empty-maxsplit",
+      "repo": "split-empty-maxsplit/repo",
+      "issue": "split-empty-maxsplit/issue.md",
+      "verification": "split-empty-maxsplit/verification",
+      "reference_patch": "split-empty-maxsplit/reference.patch",
+      "image": "python:3.11-slim",
+      "source": {
+        "repository": "https://github.com/more-itertools/more-itertools",
+        "base_commit": "d92f081a089714e0aa92434c797fdd1a06da1290",
+        "fix_commit": "ce676d24136e6efa932df8a4f3bf4801b89e1dd0",
+        "fix_url": "https://github.com/more-itertools/more-itertools/commit/ce676d24136e6efa932df8a4f3bf4801b89e1dd0",
+        "license": "MIT",
+        "files_sha256": {
+          "LICENSE": "09f1c8c9e941af3e584d59641ea9b87d83c0cb0fd007eb5ef391a7e2643c1a46",
+          "README.rst": "94a39a3f8ed00bbc7f3d1f90f0b2dec5193b5ace648195825142ef508ae4e8ce",
+          "more_itertools/__init__.py": "19cb2d318e8d45eb7d56136a55f1452c9469d21597571c31d752aa8232a2c07b",
+          "more_itertools/more.py": "4b5308649fc92836d99ace5c3c7ba6f14611d6d3df9af31df1f9894742bc320d",
+          "more_itertools/recipes.py": "2ea5bb0671811ac8d1a419b05a8086354d334e46a2f9779d24e728ffcba67fc9",
+          "pyproject.toml": "cf131f8e1bffabdfdfc9f610ae08da753ed111c460188b5c221697bc0f526b4a",
+          "setup.cfg": "309de2d8409ea9c61b8cd1509a70ef7727184a549f8bd86562fd7ff8ff74b67f",
+          "tests/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tests/test_more.py": "0772cb3b0101fb3af981511f12d75d9002685274b8a640a52131699302be66d1",
+          "tests/test_recipes.py": "7fc5821bf9b074c01ce4c3515a2fc2cd6f3b7cb949aa731410509df76c077fc6"
+        }
+      }
+    }
+  ]
+}

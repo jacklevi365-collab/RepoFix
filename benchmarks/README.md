@@ -18,3 +18,5 @@ python3 -m repofix batch --mode model --task pagination-offset
 `runs/batch-*/summary.json` 保存逐任务结果与汇总，任务完成后立即落盘。`mode`、`provenance` 和 `split` 必须随结果一起报告。失败任务始终留在分母中；参考补丁验证没有 `model_success_rate`。模型模式的成功率是这组人工开发任务上的系统通过率，预检/配置/预算失败也算失败，报告时必须区分实际发起模型请求的任务与配置失败。当前尚未运行真实模型实验。
 
 后续引入真实仓库任务时，记录来源、许可证、提交版本、环境镜像和独立验证方法；与开发集分开，固定模型、预算和工具策略再比较。不得根据评测集的参考补丁修改 Agent。
+
+另有 [real/manifest.json](real/manifest.json) 三个公开历史回归任务，来源、版本和局限见 [real/README.md](real/README.md)。它们与人工开发集分开，尚未得到真实模型运行结果。

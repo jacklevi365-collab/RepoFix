@@ -9,7 +9,7 @@
 <aside class="sidebar">
   <a class="brand" href="#workbench"><span class="logo">R<span>↗</span></span><span>RepoFix<small>EXECUTION FEEDBACK AGENT</small></span></a>
   <div class="nav-label">WORKSPACE</div>
-  <nav><a href="#workbench" data-page="workbench" class="active"><span>▣</span>修复工作台</a><a href="#tasks" data-page="tasks"><span>▤</span>开发任务集 <b>05</b></a><a href="#experiments" data-page="experiments"><span>◷</span>实验记录</a><a href="#about" data-page="about"><span>◇</span>项目说明</a></nav>
+  <nav><a href="#workbench" data-page="workbench" class="active"><span>▣</span>修复工作台</a><a href="#tasks" data-page="tasks"><span>▤</span>任务集 <b id="task-set-count">08</b></a><a href="#experiments" data-page="experiments"><span>◷</span>实验记录</a><a href="#about" data-page="about"><span>◇</span>项目说明</a></nav>
   <div class="sidebar-note"><span class="status-dot"></span> 本地执行环境<p>Docker 隔离执行<br>所有修复均保留证据</p></div>
   <a class="repo-link" href="https://github.com/jacklevi365-collab/RepoFix" target="_blank" rel="noreferrer">查看 GitHub 仓库 ↗</a>
 </aside>
@@ -33,7 +33,7 @@
 <div id="result" class="tab-content" hidden><div id="verification-summary" class="verification-summary">独立测试在另一份干净的代码副本中执行。</div><pre id="verification-code">等待验证结果。</pre><a id="report-download" hidden>下载完整报告 ↓</a></div>
 </div></div>
 </section>
-<section id="tasks" class="page" hidden><div class="section-intro"><span class="eyebrow accent">DEVELOPMENT SET</span><h2>先让每道题都可复现。</h2><p>5 个人工构造的开发任务，用于检验系统流程。它们不代表真实 GitHub Issue 修复能力。</p></div><div id="task-cards" class="card-grid"></div></section>
+<section id="tasks" class="page" hidden><div class="section-intro"><span class="eyebrow accent">DEVELOPMENT SET</span><h2>先让每道题都可复现。</h2><p>5 个人工开发任务与 3 个固定版本的真实历史回归任务。公开历史任务也可能被模型记忆，结果需注明来源。</p></div><div id="task-cards" class="card-grid"></div></section>
 <section id="experiments" class="page" hidden><div class="section-intro"><span class="eyebrow accent">REPRODUCIBLE EXPERIMENTS</span><h2>结果与来源，一起保留。</h2><p>参考补丁验证、固定脚本演示与真实模型实验分别标记。只有真实模型运行可用于模型指标。</p></div><div class="panel experiment-panel"><table><thead><tr><th>实验</th><th>来源 / 模式</th><th>任务数</th><th>通过</th><th>模型成功率</th><th>估算费用</th></tr></thead><tbody id="experiment-rows"></tbody></table><p id="experiments-empty" class="muted">暂无批量实验，请先运行 batch 命令。</p></div></section>
 <section id="about" class="page" hidden><div class="section-intro"><span class="eyebrow accent">ABOUT THE PROJECT</span><h2>可审查的代码修复闭环。</h2><p>Python · DeepSeek · Docker · FastAPI · SQLite</p></div><div class="card-grid"><article class="about-card"><span>01 / EXECUTION</span><h3>工具执行与反馈</h3><p>Agent 在隔离容器中检索代码、编辑文件和运行测试，根据执行结果继续调查与修改。</p></article><article class="about-card"><span>02 / EVIDENCE</span><h3>独立验证</h3><p>原始版本必须复现失败。补丁应用到干净副本后运行独立测试，检查用例身份、跳过项与测试完整性。</p></article><article class="about-card"><span>03 / EVALUATION</span><h3>对照与边界</h3><p>固定模型、任务与预算，对照上下文策略。当前没有真实模型成功率数据；人工任务与参考补丁用于开发验收。</p></article></div></section>
 <footer>RepoFix <span>·</span> 每个补丁都应有可以复查的执行记录。<span class="footer-version">LOCAL WORKBENCH / v0.2</span></footer>
