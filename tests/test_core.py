@@ -21,9 +21,10 @@ class TrustedFixtureRunner:
         self.verification = verification
 
     def run(self, command, timeout=30):
-        command = command.replace('/workspace', str(self.workspace))
+        command = command.replace('/workspace', '__FIXTURE_WORKSPACE__').replace('/verification', '__FIXTURE_CHECKS__')
+        command = command.replace('__FIXTURE_WORKSPACE__', str(self.workspace))
         if self.verification:
-            command = command.replace('/verification', str(self.verification))
+            command = command.replace('__FIXTURE_CHECKS__', str(self.verification))
         return execute(['sh', '-c', 'cd "$1" && ' + command, 'fixture', str(self.workspace)], timeout)
 
 
