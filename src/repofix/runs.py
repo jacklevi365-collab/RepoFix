@@ -4,17 +4,18 @@ import json
 import math
 import time
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 from datetime import datetime, timezone
 from pathlib import Path
 from .agent import Agent
+from .checkpoint import UnsafeResume, load_checkpoint, run_lock, write_json
 from .budget import BudgetExceeded, Ledger
 from .config import load_env_file
 from .evaluation import run_checks, assess, assess_regression
 from .preflight import prepare_baseline
 from .provider import DeepSeek, ScriptedDemo
 from .sandbox import DockerRunner
-from .workspace import export_patch, snapshot, patched_workspace, integrity_violations, git
+from .workspace import export_patch, snapshot, patched_workspace, integrity_violations, git, snapshot_committed, directory_fingerprint
 
 
 @dataclass
@@ -50,34 +51,63 @@ class RunSpec:
             raise ValueError('Budget limits must be finite and positive')
 
 
-def run_task(spec, on_event=None):
+def run_task(spec,on_event=None,resume_folder=None):
+    if resume_folder:
+        folder=Path(resume_folder).resolve()
+        if not folder.is_dir():
+            raise ValueError('Run directory does not exist')
+    else:
+        name=datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')+'-'+uuid.uuid4().hex[:8]
+        folder=Path(spec.output).resolve()/name
+        folder.mkdir(parents=True)
+    with run_lock(folder):
+        return _run_task(spec,on_event,resume_folder,folder)
+
+
+def _run_task(spec,on_event,resume_folder,folder):
     DockerRunner.check(spec.image)
     issue = Path(spec.issue).read_text()
     if len(issue.encode()) > 32000 or spec.max_steps < 1:
         raise ValueError('Issue must be at most 32 KB and max_steps must be positive')
     if spec.verification and not Path(spec.verification).is_dir():
         raise ValueError('Verification directory does not exist')
-    run_id = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ') + '-' + uuid.uuid4().hex[:8]
-    output = Path(spec.output).resolve()
-    output.mkdir(parents=True, exist_ok=True)
-    folder = output / run_id
-    folder.mkdir()
-    ledger = Ledger(output / 'budget.sqlite', spec.total_budget)
-    started = time.monotonic()
-    report = {'schema_version': 1, 'run_id': run_id, 'task_id': spec.task_id,
-              'started_at': datetime.now(timezone.utc).isoformat(),
-              'provider': 'scripted-demo' if spec.demo else 'deepseek',
-              'evidence_type': 'scripted' if spec.demo else 'model',
-              'status': 'error', 'verification': 'not_run',
-              'issue_sha256': hashlib.sha256(issue.encode()).hexdigest(),
-              'config': {'image': spec.image, 'max_steps': spec.max_steps,
-                         'task_budget_rmb': spec.task_budget, 'total_budget_rmb': spec.total_budget}}
+    if resume_folder:
+        folder=Path(resume_folder).resolve()
+        load_checkpoint(folder / 'checkpoint.json')
+        record=json.loads((folder / 'request.json').read_text())
+        if spec.verification and directory_fingerprint(spec.verification)!=record['verification_sha256']:
+            raise UnsafeResume('Independent verification files changed; automatic resume is refused')
+        run_id=folder.name
+        output=folder.parent
+        report=json.loads((folder / 'report.json').read_text())
+        report.update(status='error',verification='not_run',resume_count=report.get('resume_count',0)+1)
+        for key in ('regression','regression_result','verification_result','verification_reason','error','resolved','has_patch'):
+            report.pop(key,None)
+    else:
+        run_id=folder.name
+        output=folder.parent
+        normalized={key:str(value.resolve()) if isinstance(value,Path) else value for key,value in asdict(spec).items()}
+        record={'spec':normalized,'verification_sha256':directory_fingerprint(spec.verification) if spec.verification else None}
+        write_json(folder/'request.json',record)
+        (folder/'issue.md').write_text(issue)
+        report={'schema_version':1,'run_id':run_id,'task_id':spec.task_id,
+            'started_at':datetime.now(timezone.utc).isoformat(),'resume_count':0,
+            'provider':'scripted-demo' if spec.demo else 'deepseek',
+            'evidence_type':'scripted' if spec.demo else 'model','status':'error','verification':'not_run',
+            'issue_sha256':hashlib.sha256(issue.encode()).hexdigest(),
+            'config':{'image':spec.image,'max_steps':spec.max_steps,'task_budget_rmb':spec.task_budget,'total_budget_rmb':spec.total_budget}}
+    ledger=Ledger(output/'budget.sqlite',spec.total_budget)
+    started=time.monotonic()
     factory = lambda path, verification=None: DockerRunner(path, spec.image, verification)
     try:
-        snapshot(spec.repo, folder / 'workspace')
-        report['source_tree'] = git(folder / 'workspace', 'rev-parse', 'HEAD^{tree}').strip()
+        if not resume_folder:
+            snapshot(spec.repo, folder / 'workspace')
+        source_tree=git(folder/'workspace','rev-parse','HEAD^{tree}').strip()
+        if resume_folder and source_tree!=report['source_tree']:
+            raise UnsafeResume('Committed source changed; automatic resume is refused')
+        report['source_tree']=source_tree
         baseline = None
-        if spec.verification:
+        if spec.verification and not resume_folder:
             precheck = prepare_baseline(spec.repo, spec.verification, folder / 'baseline', factory, spec.regression_tests)
             baseline = precheck['baseline_result']
             report['baseline_result'] = baseline
@@ -86,18 +116,30 @@ def run_task(spec, on_event=None):
             if not precheck['ready']:
                 report.update(status='preflight_failed', verification_reason=precheck['reason'])
                 return _finish(folder, report, ledger, started)
+        if spec.verification and resume_folder:
+            baseline=report['baseline_result']
+            precheck={'regression_baseline_result':report['regression_baseline_result']}
+        write_json(folder/'report.json',report)
         if not spec.demo:
             load_env_file(spec.env_file)
         provider = ScriptedDemo() if spec.demo else DeepSeek(ledger, run_id, spec.task_budget)
+        if resume_folder and not spec.demo:
+            expected=report['config']
+            if report['provider']!=provider.model or expected['input_rmb_per_million']!=provider.input_price or expected['output_rmb_per_million']!=provider.output_price:
+                raise UnsafeResume('Model or pricing changed; create a new run for a different configuration')
         report['provider'] = 'scripted-demo' if spec.demo else provider.model
         if not spec.demo:
             report['config'].update(input_rmb_per_million=provider.input_price,
                                     output_rmb_per_million=provider.output_price,
                                     max_output_tokens=provider.max_tokens, thinking='disabled')
-        report['config'].update(context_mode=spec.context_mode, context_bytes=spec.context_bytes, tool_mode=spec.tool_mode)
+        report['config'].update(context_mode=spec.context_mode, context_bytes=spec.context_bytes, tool_mode=spec.tool_mode,max_steps=spec.max_steps)
+        write_json(folder/'report.json',report)
         agent = Agent(provider, factory(folder / 'workspace'), folder / 'trace.jsonl', spec.max_steps,
                       context_bytes=spec.context_bytes, context_mode=spec.context_mode, on_event=on_event, tool_mode=spec.tool_mode)
-        report.update(agent.run(issue))
+        if resume_folder and spec.demo:
+            # The deterministic fixture indexes its response by completed round.
+            provider.step=load_checkpoint(folder/'checkpoint.json')['next_step']
+        report.update(agent.run(issue,resume=bool(resume_folder)))
         changed = export_patch(folder / 'workspace', folder / 'patch.diff')
         report['has_patch'] = changed
         if not changed and report['status'] == 'candidate':
@@ -107,14 +149,19 @@ def run_task(spec, on_event=None):
         if violations:
             report.update(status='policy_violation', verification='not_run')
         elif changed and spec.verification:
-            patched_workspace(spec.repo, folder / 'patch.diff', folder / 'verification-workspace')
-            result = run_checks(factory(folder / 'verification-workspace', spec.verification))
+            target=folder/('verification-'+uuid.uuid4().hex[:8])
+            snapshot_committed(folder/'baseline',target)
+            import subprocess
+            subprocess.run(['git','-C',str(target),'apply','--',str(folder/'patch.diff')],check=True,capture_output=True,timeout=30)
+            result = run_checks(factory(target, spec.verification))
             assessment = assess(baseline, result)
             report.update(verification=assessment['status'], verification_reason=assessment['reason'],
                           verification_result=result)
-            regression=run_checks(factory(folder / 'verification-workspace'),regression=True,selectors=spec.regression_tests)
+            regression=run_checks(factory(target),regression=True,selectors=spec.regression_tests)
             report['regression_result']=regression
             report['regression']=assess_regression(precheck['regression_baseline_result'],regression)
+    except UnsafeResume as exc:
+        report.update(status='resume_refused',error=str(exc))
     except BudgetExceeded as exc:
         report.update(status='budget_limit', error=str(exc))
     except Exception as exc:
@@ -126,6 +173,7 @@ def _finish(folder, report, ledger, started):
     report['estimated_cost_rmb'] = ledger.spent(report['run_id'])
     report['duration_seconds'] = round(time.monotonic() - started, 3)
     report['completed_at'] = datetime.now(timezone.utc).isoformat()
+    report['wall_duration_seconds']=(datetime.now(timezone.utc)-datetime.fromisoformat(report['started_at'])).total_seconds()
     trace = folder / 'trace.jsonl'
     events = [json.loads(line) for line in trace.read_text().splitlines()] if trace.exists() else []
     model_events = [event for event in events if event['kind'] == 'model']
@@ -139,5 +187,19 @@ def _finish(folder, report, ledger, started):
             export_patch(folder / 'workspace', folder / 'patch.diff')
         except Exception:
             pass
-    (folder / 'report.json').write_text(json.dumps(report, ensure_ascii=False, indent=2))
+    write_json(folder/'report.json',report)
     return {'output': str(folder), **report}
+
+
+def resume_task(folder,max_steps=None,on_event=None):
+    folder=Path(folder).resolve()
+    record=json.loads((folder/'request.json').read_text())
+    spec=RunSpec(**record['spec'])
+    # Resume uses the saved issue and existing ledger; original input can move.
+    spec.issue=folder/'issue.md'
+    spec.output=folder.parent
+    if max_steps is not None:
+        spec.max_steps=max_steps
+    if spec.max_steps<1:
+        raise ValueError('max_steps must be positive')
+    return run_task(spec,on_event=on_event,resume_folder=folder)

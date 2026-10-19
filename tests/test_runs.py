@@ -4,7 +4,7 @@ import shlex
 import unittest
 from pathlib import Path
 from unittest.mock import patch
-from repofix.runs import RunSpec, run_task
+from repofix.runs import RunSpec, run_task, resume_task
 from repofix.provider import ScriptedDemo
 from test_core import ROOT, TrustedFixtureRunner
 
@@ -59,3 +59,40 @@ class RunTests(unittest.TestCase):
             self.assertEqual(report['verification'],'passed')
             self.assertEqual(report['regression']['status'],'failed')
             self.assertFalse(report['resolved'])
+
+
+    def test_resume_keeps_run_id_history_and_budget_ledger(self):
+        with tempfile.TemporaryDirectory() as tmp,patch('repofix.runs.DockerRunner') as runner:
+            runner.side_effect=lambda path,image,verification=None: TrustedFixtureRunner(path,verification)
+            first=run_task(RunSpec(repo=ROOT/'examples/tinybug/repo',issue=ROOT/'examples/tinybug/issue.md',
+                verification=ROOT/'examples/tinybug/verification',output=Path(tmp),demo=True,max_steps=1))
+            self.assertEqual(first['status'],'step_limit')
+            result=resume_task(first['output'],max_steps=5)
+            self.assertEqual(result['run_id'],first['run_id'])
+            self.assertEqual(result['resume_count'],1)
+            self.assertEqual(result['config']['max_steps'],5)
+            self.assertTrue(result['resolved'])
+            self.assertEqual(result['tool_calls'],4)
+            self.assertEqual(result['model_responses'],5)
+            self.assertEqual(len(list(Path(tmp).glob('budget.sqlite'))),1)
+
+
+    def test_resume_does_not_reset_a_paid_task_budget(self):
+        class PaidFixture:
+            model='fixture-model'
+            input_price=1
+            output_price=1
+            max_tokens=64
+            def __init__(self,ledger,run_id,task_budget):
+                self.ledger,self.run_id,self.limit=ledger,run_id,task_budget
+            def complete(self,messages,tools):
+                self.ledger.reserve(self.run_id,.6,self.limit)
+                return {'role':'assistant','tool_calls':[{'id':'once','function':{'name':'shell','arguments':'{"command":"true"}'}}]},{}
+        with tempfile.TemporaryDirectory() as tmp,patch('repofix.runs.DockerRunner') as runner,patch('repofix.runs.DeepSeek',PaidFixture),patch('repofix.runs.load_env_file'):
+            runner.side_effect=lambda path,image,verification=None: TrustedFixtureRunner(path,verification)
+            first=run_task(RunSpec(repo=ROOT/'examples/tinybug/repo',issue=ROOT/'examples/tinybug/issue.md',
+                output=Path(tmp),max_steps=1,task_budget=1))
+            result=resume_task(first['output'],max_steps=2)
+            self.assertEqual(result['status'],'budget_limit')
+            self.assertAlmostEqual(result['estimated_cost_rmb'],.6)
+            self.assertEqual(result['tool_calls'],1)

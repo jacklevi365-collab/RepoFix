@@ -59,3 +59,46 @@ def integrity_violations(workspace):
         if config or test and name in original:
             violations.append(name)
     return sorted(violations)
+
+
+def snapshot_committed(source, target):
+    """Materialize committed source, excluding side effects from baseline tests."""
+    import tarfile
+    import tempfile
+    from pathlib import PurePosixPath
+    with tempfile.TemporaryDirectory() as temporary:
+        folder=Path(temporary)
+        with (folder/'source.tar').open('wb') as archive:
+            subprocess.run(['git','-C',str(source),'archive','HEAD'],stdout=archive,
+                           stderr=subprocess.PIPE,check=True,timeout=30)
+        clean=folder/'clean'
+        clean.mkdir()
+        with tarfile.open(folder/'source.tar') as archive:
+            for member in archive:
+                relative=PurePosixPath(member.name)
+                if relative.is_absolute() or '..' in relative.parts or not (member.isfile() or member.isdir()):
+                    raise ValueError('Unsupported path in committed snapshot')
+                destination=clean/str(relative)
+                if member.isdir():
+                    destination.mkdir(parents=True,exist_ok=True)
+                else:
+                    destination.parent.mkdir(parents=True,exist_ok=True)
+                    with archive.extractfile(member) as data, destination.open('wb') as file:
+                        shutil.copyfileobj(data,file)
+                    destination.chmod(0o755 if member.mode & 0o111 else 0o644)
+        snapshot(clean,target)
+
+
+def directory_fingerprint(path):
+    import hashlib
+    digest=hashlib.sha256()
+    for file in sorted(Path(path).rglob('*')):
+        relative=file.relative_to(path)
+        if '__pycache__' in relative.parts or file.suffix=='.pyc':
+            continue
+        if file.is_symlink():
+            raise ValueError('Verification symlinks are unsupported')
+        if file.is_file():
+            digest.update(str(relative).encode()+b'\0')
+            digest.update(hashlib.sha256(file.read_bytes()).digest())
+    return digest.hexdigest()

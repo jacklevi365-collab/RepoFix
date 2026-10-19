@@ -5,6 +5,7 @@ from .context import compact_messages, message_bytes
 from pathlib import Path
 
 from .tools import RepositoryTools, SHELL
+from .checkpoint import load_checkpoint, save_checkpoint
 
 TOOLS = [SHELL]
 
@@ -34,22 +35,35 @@ class Agent:
         if self.on_event:
             self.on_event(event)
 
-    def run(self, issue):
-        messages = [{"role": "system", "content": SYSTEM}, {"role": "user", "content": issue}]
-        for step in range(self.max_steps):
+    def run(self, issue, resume=False):
+        checkpoint=self.trace.parent / 'checkpoint.json'
+        if resume:
+            state=load_checkpoint(checkpoint)
+            if state['phase']=='finished':
+                return state['result']
+            messages,next_step=state['messages'],state['next_step']
+            self.event('resume',step=next_step)
+        else:
+            messages=[{"role":"system","content":SYSTEM},{"role":"user","content":issue}]
+            next_step=0
+            save_checkpoint(checkpoint,phase='ready',messages=messages,next_step=0)
+        for step in range(next_step,self.max_steps):
             if self.context_mode == 'compact':
                 messages, stats = compact_messages(messages, self.context_bytes)
                 if stats['trimmed_results']:
                     self.event('context', step=step, **stats)
             if message_bytes(messages) > self.context_bytes:
                 return {"status": "context_limit", "steps": step}
+            save_checkpoint(checkpoint,phase='in_flight',messages=messages,next_step=step)
             started = time.monotonic()
             message, usage = self.provider.complete(messages, self.tools.schemas)
             self.event("model", step=step, message=message, usage=usage, duration_seconds=round(time.monotonic()-started, 3))
             messages.append(message)
             calls = message.get("tool_calls") or []
             if not calls:
-                return {"status": "candidate", "steps": step+1, "summary": message.get("content", "")}
+                result={"status":"candidate","steps":step+1,"summary":message.get("content","")}
+                save_checkpoint(checkpoint,phase='finished',messages=messages,next_step=step+1,result=result)
+                return result
             for call in calls:
                 try:
                     args = json.loads(call["function"]["arguments"])
@@ -61,4 +75,5 @@ class Agent:
                 self.event("tool", call_id=call["id"], result=result)
                 messages.append({"role": "tool", "tool_call_id": call["id"],
                                  "content": json.dumps(result, ensure_ascii=False)})
+            save_checkpoint(checkpoint,phase='ready',messages=messages,next_step=step+1)
         return {"status": "step_limit", "steps": self.max_steps}

@@ -3,7 +3,7 @@ import json
 import math
 import uuid
 from pathlib import Path
-from .runs import RunSpec, run_task
+from .runs import RunSpec, run_task, resume_task
 from .benchmark import run_batch
 from .sandbox import DockerRunner
 from .preflight import prepare_baseline
@@ -39,6 +39,9 @@ def main():
     serve = sub.add_parser('serve', help='Run the local API (install web extra)')
     serve.add_argument('--port', type=int, default=8765)
     serve.add_argument('--root', type=Path, default=Path.cwd())
+    resume=sub.add_parser('resume',help='Resume a safe completed-round checkpoint')
+    resume.add_argument('--run-dir',type=Path,required=True)
+    resume.add_argument('--max-steps',type=int)
     run = sub.add_parser('run')
     run.add_argument('--repo', type=Path, required=True)
     run.add_argument('--issue', type=Path, required=True)
@@ -89,7 +92,10 @@ def main():
             if not result['ready']:
                 raise SystemExit(1)
             return
-        result = run_task(RunSpec(**{key: value for key, value in vars(args).items() if key != 'action'}))
+        if args.action=='resume':
+            result=resume_task(args.run_dir,args.max_steps)
+        else:
+            result = run_task(RunSpec(**{key: value for key, value in vars(args).items() if key != 'action'}))
         print(json.dumps(result, ensure_ascii=False, indent=2))
         if result['status'] != 'candidate' or result['verification'] == 'failed' or result.get('regression',{}).get('status')=='failed':
             raise SystemExit(1)
