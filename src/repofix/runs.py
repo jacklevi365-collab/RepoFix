@@ -30,6 +30,7 @@ class RunSpec:
     verification: Path | None = None
     env_file: Path = Path('.env')
     task_id: str | None = None
+    tool_mode: str = 'shell'
     context_mode: str = 'full'
     context_bytes: int = 100000
 
@@ -40,6 +41,8 @@ class RunSpec:
             self.verification = Path(self.verification)
         if self.max_steps < 1 or self.context_bytes < 1:
             raise ValueError('Step and context limits must be positive')
+        if self.tool_mode not in {'shell','structured'}:
+            raise ValueError('Unsupported tool mode')
         if self.context_mode not in {'full', 'compact'}:
             raise ValueError('Unsupported context mode')
         if not all(math.isfinite(value) and value > 0 for value in (self.task_budget, self.total_budget)):
@@ -89,9 +92,9 @@ def run_task(spec, on_event=None):
             report['config'].update(input_rmb_per_million=provider.input_price,
                                     output_rmb_per_million=provider.output_price,
                                     max_output_tokens=provider.max_tokens, thinking='disabled')
-        report['config'].update(context_mode=spec.context_mode, context_bytes=spec.context_bytes)
+        report['config'].update(context_mode=spec.context_mode, context_bytes=spec.context_bytes, tool_mode=spec.tool_mode)
         agent = Agent(provider, factory(folder / 'workspace'), folder / 'trace.jsonl', spec.max_steps,
-                      context_bytes=spec.context_bytes, context_mode=spec.context_mode, on_event=on_event)
+                      context_bytes=spec.context_bytes, context_mode=spec.context_mode, on_event=on_event, tool_mode=spec.tool_mode)
         report.update(agent.run(issue))
         changed = export_patch(folder / 'workspace', folder / 'patch.diff')
         report['has_patch'] = changed

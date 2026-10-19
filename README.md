@@ -135,6 +135,17 @@ python3 -m repofix batch --mode model --task-budget 2 --total-budget 100
 
 批量结果逐项保存，失败任务保留在统计分母中。参考补丁验证与模型实验使用不同的结果类型，防止把系统演示误写为模型指标。
 
+## 结构化工具
+
+`--tool-mode shell` 保留最小工具基线；`--tool-mode structured` 增加文件列表、带行号读取、字面文本搜索和精确替换，仍保留 shell 运行测试。工具代码全部在 Docker 容器中执行。
+
+精确替换要求旧文本匹配指定次数，否则不写入文件；读取与搜索有文件大小、行数和结果数量限制。结构化工具拒绝目录逃逸与私有元数据路径，但 shell 仍是完整容器命令入口，因此这不是额外的安全隔离边界。
+
+```bash
+python3 -m repofix batch --mode model --tool-mode structured --context-mode compact
+PYTHONPATH=src python3 scripts/structured_smoke.py  # 零模型请求的工具链验收
+```
+
 ## 上下文策略对照
 
 默认 `--context-mode full` 保留所有历史，提供简单基线；`--context-mode compact` 在上下文接近阈值时缩短较早的工具结果，保留首尾、最新工具轮次和调用配对，完整输出仍保存到轨迹中。压缩不额外调用模型。超过 `--context-bytes` 后明确停止，不静默删除整个调查过程。

@@ -59,7 +59,7 @@ def summarize(results, mode):
 
 
 def run_batch(manifest, output=Path('runs'), mode='preflight', task_ids=None,
-              task_budget=2.0, total_budget=100.0, max_steps=12, env_file=Path('.env'), context_mode='full'):
+              task_budget=2.0, total_budget=100.0, max_steps=12, env_file=Path('.env'), context_mode='full', tool_mode='shell'):
     if mode not in {'preflight', 'reference', 'model'}:
         raise ValueError('Unsupported batch mode')
     data = load_manifest(manifest)
@@ -82,7 +82,7 @@ def run_batch(manifest, output=Path('runs'), mode='preflight', task_ids=None,
                 result = run_task(RunSpec(repo=task['repo'], issue=task['issue'],
                     verification=task['verification'], output=output, image=task['image'],
                     max_steps=max_steps, task_budget=task_budget, total_budget=total_budget,
-                    env_file=env_file, task_id=task['id'], context_mode=context_mode))
+                    env_file=env_file, task_id=task['id'], context_mode=context_mode, tool_mode=tool_mode))
             else:
                 DockerRunner.check(task['image'])
                 task_folder = folder / task['id']

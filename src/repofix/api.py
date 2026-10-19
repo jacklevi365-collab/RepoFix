@@ -21,6 +21,7 @@ class SubmitJob(BaseModel):
     task_id: str = Field(min_length=1, max_length=80)
     mode: Literal['demo', 'model'] = 'demo'
     context_mode: Literal['full', 'compact'] = 'full'
+    tool_mode: Literal['shell','structured'] = 'structured'
     max_steps: int = Field(default=12, ge=1, le=30)
     task_budget: float = Field(default=2.0, gt=0, le=5, allow_inf_nan=False)
 
@@ -104,7 +105,7 @@ def create_app(root=None, output=None, executor=run_task):
             task = catalog[payload['task_id']]
             result = executor(RunSpec(repo=task['repo'], issue=task['issue'], verification=task['verification'],
                 output=output, image=task['image'], demo=payload['mode']=='demo',
-                context_mode=payload['context_mode'], max_steps=payload['max_steps'],
+                context_mode=payload['context_mode'], tool_mode=payload['tool_mode'], max_steps=payload['max_steps'],
                 task_budget=payload['task_budget'], total_budget=100, env_file=root / '.env',
                 task_id=payload['task_id']), on_event=lambda event: store.emit(job_id,event))
             store.finish(job_id,result)

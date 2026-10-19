@@ -5,6 +5,7 @@
 | 文件 | 职责 |
 |---|---|
 | `context.py` | 保留工具调用配对的历史输出压缩 |
+| `tools.py` | Docker 内结构化代码工具与参数校验 |
 | `agent.py` | 模型—工具循环，参数检查、步数和上下文限制、轨迹写入 |
 | `provider.py` | DeepSeek HTTP 适配与明确标记的 scripted demo |
 | `sandbox.py` | 一次性 Docker 容器与超时清理 |
