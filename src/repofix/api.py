@@ -101,7 +101,15 @@ def create_app(root=None, output=None, executor=run_task):
                 results.append(
                     {
                         key: data.get(key)
-                        for key in ("name", "mode", "split", "provenance", "summary")
+                        for key in (
+                            "name",
+                            "mode",
+                            "split",
+                            "provenance",
+                            "summary",
+                            "strategy",
+                            "created_at",
+                        )
                     }
                 )
             except (OSError, ValueError):

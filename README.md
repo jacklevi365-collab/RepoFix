@@ -147,6 +147,16 @@ python3 -m repofix batch --mode model --task-budget 2 --total-budget 100
 
 批量结果逐项保存，失败任务保留在统计分母中。参考补丁验证与模型实验使用不同的结果类型，防止把系统演示误写为模型指标。
 
+## 策略对照实验
+
+```bash
+python3 -m repofix matrix  # 免费生成四组计划
+# 配置 Key/价格后，显式执行真实模型实验
+python3 -m repofix matrix --execute --task-budget 2
+```
+
+执行前校验配置、任务和共享预算，按批次保存比较结果。实验边界、预算安排及报告要求见 [docs/experiment-protocol.md](docs/experiment-protocol.md)。当前真实模型指标仍为待验证。
+
 ## 安全断点恢复
 
 每个完整工具轮次结束后原子保存对话检查点，恢复时使用同一个任务 ID、工作目录和预算账本，不重放已完成命令：

@@ -6,6 +6,7 @@ from pathlib import Path
 from .runs import RunSpec, run_task, resume_task
 from .benchmark import run_batch
 from .budget import Ledger
+from .experiments import plan_matrix, execute_matrix
 from .sandbox import DockerRunner
 from .preflight import prepare_baseline
 
@@ -50,6 +51,15 @@ def main():
     )
     budget.add_argument("--output", type=Path, default=Path("runs"))
     budget.add_argument("--total-budget", type=positive, default=100.0)
+    matrix = sub.add_parser(
+        "matrix", help="Plan a 2x2 experiment; --execute explicitly enables paid calls"
+    )
+    matrix.add_argument("--manifest", type=Path, default=Path("benchmarks/real/manifest.json"))
+    matrix.add_argument("--output", type=Path, default=Path("runs"))
+    matrix.add_argument("--task-budget", type=positive, default=2.0)
+    matrix.add_argument("--max-steps", type=int, default=12)
+    matrix.add_argument("--env-file", type=Path, default=Path(".env"))
+    matrix.add_argument("--execute", action="store_true")
     run = sub.add_parser("run")
     run.add_argument("--repo", type=Path, required=True)
     run.add_argument("--issue", type=Path, required=True)
@@ -73,6 +83,16 @@ def main():
             except ImportError:
                 raise ValueError('Install optional dependencies: pip install -e ".[web]"') from None
             uvicorn.run(create_app(args.root), host="127.0.0.1", port=args.port)
+            return
+        if args.action == "matrix":
+            result = (
+                execute_matrix(
+                    args.manifest, args.output, args.task_budget, args.max_steps, args.env_file
+                )
+                if args.execute
+                else plan_matrix(args.manifest, args.task_budget)
+            )
+            print(json.dumps(result, ensure_ascii=False, indent=2))
             return
         if args.action == "budget":
             args.output.mkdir(parents=True, exist_ok=True)

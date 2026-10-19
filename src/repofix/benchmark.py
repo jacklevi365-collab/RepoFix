@@ -6,6 +6,7 @@ import re
 import time
 import uuid
 from collections import Counter
+from datetime import datetime, timezone
 from pathlib import Path
 from .evaluation import assess, run_checks, assess_regression
 from .preflight import prepare_baseline
@@ -91,6 +92,7 @@ def run_batch(
     output = Path(output).resolve()
     folder = output / ("batch-" + uuid.uuid4().hex[:12])
     folder.mkdir(parents=True)
+    created_at = datetime.now(timezone.utc).isoformat()
     results = []
     for task in tasks:
         started = time.monotonic()
@@ -175,6 +177,12 @@ def run_batch(
         # Persist partial results after every task so interrupted experiments are inspectable.
         report = {
             "schema_version": 1,
+            "created_at": created_at,
+            "strategy": {
+                "tool_mode": tool_mode,
+                "context_mode": context_mode,
+                "max_steps": max_steps,
+            },
             "name": data["name"],
             "split": data["split"],
             "provenance": data.get("provenance", "unspecified"),

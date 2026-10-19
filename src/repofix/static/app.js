@@ -378,7 +378,9 @@ async function loadExperiments() {
           ] || item.mode;
         for (const value of [
           item.name,
-          mode,
+          item.mode === "model" && item.strategy
+            ? `${mode} · ${item.strategy.tool_mode}/${item.strategy.context_mode}`
+            : mode,
           s.task_count,
           s.passed_count,
           s.model_success_rate === null
