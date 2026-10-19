@@ -35,6 +35,9 @@ def main():
     batch.add_argument('--total-budget', type=positive, default=100.0)
     batch.add_argument('--env-file', type=Path, default=Path('.env'))
     batch.add_argument('--context-mode', choices=['full', 'compact'], default='full')
+    serve = sub.add_parser('serve', help='Run the local API (install web extra)')
+    serve.add_argument('--port', type=int, default=8765)
+    serve.add_argument('--root', type=Path, default=Path.cwd())
     run = sub.add_parser('run')
     run.add_argument('--repo', type=Path, required=True)
     run.add_argument('--issue', type=Path, required=True)
@@ -50,6 +53,14 @@ def main():
     run.add_argument('--context-bytes', type=int, default=100000)
     args = parser.parse_args()
     try:
+        if args.action == 'serve':
+            try:
+                import uvicorn
+                from .api import create_app
+            except ImportError:
+                raise ValueError('Install optional dependencies: pip install -e ".[web]"') from None
+            uvicorn.run(create_app(args.root), host='127.0.0.1', port=args.port)
+            return
         if args.action == 'doctor':
             DockerRunner.check()
             print('Docker daemon available. Prepare the chosen image before running tasks.')

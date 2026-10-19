@@ -110,6 +110,16 @@ python3 -m repofix run \
 - Docker 限制适合本地项目实验，不等同于运行敌对代码的强隔离服务；当前只面向你审查过的仓库。
 - 上下文当前采用工具输出截断和总量停止，尚未实现摘要压缩或任务恢复。
 
+## 本地任务 API
+
+```bash
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements/web.lock
+PYTHONPATH=src .venv/bin/python -m repofix serve
+```
+
+服务地址为 `http://127.0.0.1:8765`，交互 API 文档位于 `/docs`。支持异步任务、SQLite 状态持久化、SSE 事件续读、幂等提交和产物下载。服务重启将未完成任务标记为中断，不自动重复付费执行。详见 [docs/api.md](docs/api.md)。
+
 ## 批量评测
 
 已包含五个带参考补丁和独立测试的人工开发任务，详见 [benchmarks/README.md](benchmarks/README.md)。
