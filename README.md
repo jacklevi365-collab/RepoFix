@@ -2,7 +2,9 @@
 
 基于执行反馈的 Python Issue 修复 Agent。输入仓库和问题描述，Agent 在 Docker 中调查代码、生成补丁、运行测试并迭代，导出可审查的补丁与执行记录。
 
-**当前状态：第一版核心闭环。** 包含 DeepSeek 适配、Docker 执行、CLI、预算预留账本和独立验证入口。离线 scripted demo 用于检验编排流程，不代表真实模型修复能力。尚未获得真实任务集上的成功率数据。
+**当前状态：v0.2 本地工作台。** 包含 DeepSeek 适配、Docker 执行、CLI、预算账本、结构化独立验证、批量评测与异步任务页面。离线 scripted demo 用于检验编排流程，不代表真实模型修复能力。尚未获得真实任务集上的成功率数据。
+
+![RepoFix 工作台：固定脚本演示与补丁证据](docs/images/workbench.png)
 
 ## 工作流程
 
@@ -118,7 +120,7 @@ python3 -m venv .venv
 PYTHONPATH=src .venv/bin/python -m repofix serve
 ```
 
-服务地址为 `http://127.0.0.1:8765`，交互 API 文档位于 `/docs`。支持异步任务、SQLite 状态持久化、SSE 事件续读、幂等提交和产物下载。服务重启将未完成任务标记为中断，不自动重复付费执行。详见 [docs/api.md](docs/api.md)。
+打开 `http://127.0.0.1:8765` 即可使用修复工作台：选择任务、查看实时轨迹、切换代码补丁和独立验证，或浏览实验记录。交互 API 文档位于 `/docs`。支持异步任务、SQLite 状态持久化、SSE 事件续读、幂等提交和产物下载。服务重启将未完成任务标记为中断，不自动重复付费执行。详见 [docs/api.md](docs/api.md)。
 
 ## 批量评测
 

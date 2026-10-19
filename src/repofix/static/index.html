@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RepoFix · 修复工作台</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<aside class="sidebar">
+  <a class="brand" href="#workbench"><span class="logo">R<span>↗</span></span><span>RepoFix<small>EXECUTION FEEDBACK AGENT</small></span></a>
+  <div class="nav-label">WORKSPACE</div>
+  <nav><a href="#workbench" data-page="workbench" class="active"><span>▣</span>修复工作台</a><a href="#tasks" data-page="tasks"><span>▤</span>开发任务集 <b>05</b></a><a href="#experiments" data-page="experiments"><span>◷</span>实验记录</a><a href="#about" data-page="about"><span>◇</span>项目说明</a></nav>
+  <div class="sidebar-note"><span class="status-dot"></span> 本地执行环境<p>Docker 隔离执行<br>所有修复均保留证据</p></div>
+  <a class="repo-link" href="https://github.com/jacklevi365-collab/RepoFix" target="_blank" rel="noreferrer">查看 GitHub 仓库 ↗</a>
+</aside>
+<main>
+<header><div><span class="eyebrow">REPOFIX / <span id="breadcrumb">WORKBENCH</span></span><h1 id="page-title">修复工作台</h1></div><div class="header-right"><span class="local-badge"><i></i> LOCAL SESSION</span><button class="quiet" id="refresh">刷新记录 ↻</button></div></header>
+<section id="workbench" class="page">
+<div class="intro"><div><span class="eyebrow accent">ISSUE → PATCH → VERIFICATION</span><h2>从问题到补丁，完整追踪。</h2><p>查看 Agent 的调查、修改与测试过程，检查每一份修复证据。</p></div><span class="outline-badge">PYTHON REPOSITORIES</span></div>
+<div class="metrics"><div><span>任务状态</span><strong id="metric-status">待开始</strong><small id="metric-evidence">先运行零费用演示</small></div><div><span>执行耗时</span><strong id="metric-time">—<em> s</em></strong><small>包含环境准备与验证</small></div><div><span>Token 用量</span><strong id="metric-tokens">—</strong><small>按模型响应 usage 汇总</small></div><div><span>估算费用</span><strong id="metric-cost">¥ 0.0000</strong><small>共享总预算 ¥100</small></div></div>
+<div class="work-grid">
+<div class="panel setup"><div class="panel-head"><h3><span class="step">01</span> 配置修复任务</h3><span class="tiny">NEW RUN</span></div>
+<form id="run-form"><label for="task">选择任务</label><select id="task"><option value="demo-tinybug">平均值边界修复 · 演示</option></select><div class="issue-preview" id="issue-preview">mean() 返回错误的平均值，单个元素会触发除零错误。</div>
+<label for="mode">运行方式</label><select id="mode"><option value="demo">固定脚本演示 · 无需 API Key</option><option value="model">真实 DeepSeek · 需要本机配置</option></select>
+<label>上下文策略</label><div class="segmented"><label><input type="radio" name="context" value="full" checked><span>完整上下文</span></label><label><input type="radio" name="context" value="compact"><span>压缩历史输出</span></label></div>
+<div class="form-row"><div><label for="budget">单任务预算 / 元</label><input id="budget" type="number" value="2" min="0.01" max="5" step="0.1"></div><div><label for="steps">最大模型轮数</label><input id="steps" type="number" value="12" min="1" max="30"></div></div>
+<div class="info-note" id="mode-note">演示使用预先编写的工具调用脚本，仅验证系统流程。</div><button type="submit" id="run-button" class="primary">开始修复 <span>↗</span></button><div id="form-error" role="alert"></div></form>
+<div class="recent-head"><h4>最近任务</h4><span id="job-count">0</span></div><div id="recent-jobs" class="recent-jobs"><p class="muted">还没有执行记录</p></div></div>
+<div class="panel execution"><div class="panel-head"><h3><span class="step">02</span> 执行证据</h3><span id="run-id" class="tiny">NO ACTIVE RUN</span></div>
+<div class="tabs"><button data-tab="timeline" class="active">执行轨迹 <span id="event-count">0</span></button><button data-tab="patch">代码补丁</button><button data-tab="result">独立验证</button></div>
+<div id="timeline" class="tab-content"><div class="empty-state" id="timeline-empty"><div class="empty-icon">⌘</div><h3>等待一个修复任务</h3><p>任务开始后，模型决策、命令输出与测试反馈<br>会逐步显示在这里。</p><div class="flow-label">调查 <span>→</span> 修改 <span>→</span> 测试 <span>→</span> 验证</div></div><div id="events"></div></div>
+<div id="patch" class="tab-content" hidden><div class="artifact-head"><p>导出的 Git 补丁</p><a id="patch-download" hidden>下载 patch.diff ↓</a></div><pre id="patch-code">完成任务后显示补丁。</pre></div>
+<div id="result" class="tab-content" hidden><div id="verification-summary" class="verification-summary">独立测试在另一份干净的代码副本中执行。</div><pre id="verification-code">等待验证结果。</pre><a id="report-download" hidden>下载完整报告 ↓</a></div>
+</div></div>
+</section>
+<section id="tasks" class="page" hidden><div class="section-intro"><span class="eyebrow accent">DEVELOPMENT SET</span><h2>先让每道题都可复现。</h2><p>5 个人工构造的开发任务，用于检验系统流程。它们不代表真实 GitHub Issue 修复能力。</p></div><div id="task-cards" class="card-grid"></div></section>
+<section id="experiments" class="page" hidden><div class="section-intro"><span class="eyebrow accent">REPRODUCIBLE EXPERIMENTS</span><h2>结果与来源，一起保留。</h2><p>参考补丁验证、固定脚本演示与真实模型实验分别标记。只有真实模型运行可用于模型指标。</p></div><div class="panel experiment-panel"><table><thead><tr><th>实验</th><th>来源 / 模式</th><th>任务数</th><th>通过</th><th>模型成功率</th><th>估算费用</th></tr></thead><tbody id="experiment-rows"></tbody></table><p id="experiments-empty" class="muted">暂无批量实验，请先运行 batch 命令。</p></div></section>
+<section id="about" class="page" hidden><div class="section-intro"><span class="eyebrow accent">ABOUT THE PROJECT</span><h2>可审查的代码修复闭环。</h2><p>Python · DeepSeek · Docker · FastAPI · SQLite</p></div><div class="card-grid"><article class="about-card"><span>01 / EXECUTION</span><h3>工具执行与反馈</h3><p>Agent 在隔离容器中检索代码、编辑文件和运行测试，根据执行结果继续调查与修改。</p></article><article class="about-card"><span>02 / EVIDENCE</span><h3>独立验证</h3><p>原始版本必须复现失败。补丁应用到干净副本后运行独立测试，检查用例身份、跳过项与测试完整性。</p></article><article class="about-card"><span>03 / EVALUATION</span><h3>对照与边界</h3><p>固定模型、任务与预算，对照上下文策略。当前没有真实模型成功率数据；人工任务与参考补丁用于开发验收。</p></article></div></section>
+<footer>RepoFix <span>·</span> 每个补丁都应有可以复查的执行记录。<span class="footer-version">LOCAL WORKBENCH / v0.2</span></footer>
+</main><script src="/static/app.js" defer></script>
+</body></html>

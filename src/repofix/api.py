@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Literal
 from fastapi import FastAPI, Header, HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 from .benchmark import load_manifest
@@ -54,6 +55,27 @@ def create_app(root=None, output=None, executor=run_task):
     app = FastAPI(title='RepoFix Local API', version='0.2.0', lifespan=lifespan)
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=['localhost', '127.0.0.1', '[::1]'])
     app.state.store = store
+    static=Path(__file__).parent / 'static'
+    app.mount('/static', StaticFiles(directory=static), name='static')
+
+    @app.get('/', include_in_schema=False)
+    def dashboard():
+        return FileResponse(static / 'index.html')
+
+    @app.get('/api/experiments')
+    def experiments():
+        results=[]
+        for path in sorted(output.glob('batch-*/summary.json'), key=lambda item:item.stat().st_mtime, reverse=True)[:20]:
+            if output not in path.resolve().parents:
+                continue
+            try:
+                data=json.loads(path.read_text())
+                if not isinstance(data.get('summary'),dict):
+                    continue
+                results.append({key:data.get(key) for key in ('name','mode','split','provenance','summary')})
+            except (OSError,ValueError):
+                continue
+        return results
 
     @app.middleware('http')
     async def local_origin(request: Request, call_next):

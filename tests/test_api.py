@@ -45,6 +45,10 @@ class ApiTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             app=create_app(ROOT,Path(tmp),executor=execute)
             with TestClient(app,base_url='http://localhost') as client:
+                self.assertEqual(client.get('/').status_code,200)
+                self.assertIn('RepoFix',client.get('/').text)
+                self.assertEqual(client.get('/static/app.js').status_code,200)
+                self.assertEqual(client.get('/api/experiments').json(),[])
                 payload={'task_id':'demo-tinybug','mode':'demo'}
                 response=client.post('/api/jobs',json=payload,headers={'Idempotency-Key':'once'})
                 self.assertEqual(response.status_code,202)
