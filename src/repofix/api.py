@@ -107,7 +107,7 @@ def create_app(root=None, output=None, executor=run_task):
                 output=output, image=task['image'], demo=payload['mode']=='demo',
                 context_mode=payload['context_mode'], tool_mode=payload['tool_mode'], max_steps=payload['max_steps'],
                 task_budget=payload['task_budget'], total_budget=100, env_file=root / '.env',
-                task_id=payload['task_id']), on_event=lambda event: store.emit(job_id,event))
+                task_id=payload['task_id'], regression_tests=task.get('regression_tests')), on_event=lambda event: store.emit(job_id,event))
             store.finish(job_id,result)
             store.emit(job_id,{'kind':'lifecycle','stage':'completed','status':result['status']})
         except Exception as exc:

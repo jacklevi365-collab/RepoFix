@@ -91,7 +91,7 @@ def main():
             return
         result = run_task(RunSpec(**{key: value for key, value in vars(args).items() if key != 'action'}))
         print(json.dumps(result, ensure_ascii=False, indent=2))
-        if result['status'] != 'candidate' or result['verification'] == 'failed':
+        if result['status'] != 'candidate' or result['verification'] == 'failed' or result.get('regression',{}).get('status')=='failed':
             raise SystemExit(1)
     except (RuntimeError, ValueError, OSError) as exc:
         parser.exit(1, f'RepoFix: {exc}\n')

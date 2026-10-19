@@ -30,7 +30,10 @@
           "tests/test_more.py": "0cd2fcebc8b1d801bebeb8bea4a77ef105f5afc4c6cc16ac29fcad24ce0136cf",
           "tests/test_recipes.py": "3bd29d44e99492ea8d720593fa0778b35edd933321de18dc6ebf8f24192a6dc4"
         }
-      }
+      },
+      "regression_tests": [
+        "tests.test_more.BucketTests"
+      ]
     },
     {
       "id": "value-chain-typeerror",
@@ -57,7 +60,10 @@
           "tests/test_more.py": "8aeef970c344c654f98c05541df08c69e0cdf099fc2a40e6d56c14529003c928",
           "tests/test_recipes.py": "7fc5821bf9b074c01ce4c3515a2fc2cd6f3b7cb949aa731410509df76c077fc6"
         }
-      }
+      },
+      "regression_tests": [
+        "tests.test_more.ValueChainTests"
+      ]
     },
     {
       "id": "split-empty-maxsplit",
@@ -84,7 +90,12 @@
           "tests/test_more.py": "0772cb3b0101fb3af981511f12d75d9002685274b8a640a52131699302be66d1",
           "tests/test_recipes.py": "7fc5821bf9b074c01ce4c3515a2fc2cd6f3b7cb949aa731410509df76c077fc6"
         }
-      }
+      },
+      "regression_tests": [
+        "tests.test_more.SplitBeforeTest",
+        "tests.test_more.SplitAfterTest",
+        "tests.test_more.SplitWhenTests"
+      ]
     }
   ]
 }

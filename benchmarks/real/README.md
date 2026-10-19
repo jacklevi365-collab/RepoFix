@@ -16,3 +16,5 @@ python3 -m repofix batch --manifest benchmarks/real/manifest.json --mode model -
 ```
 
 这些是公开的历史任务，并非 SWE-bench 或严格保密的留出集。三个任务都来自同一个库，样本很小；模型可能见过上游代码和修复。因此将来即使通过，也只能报告这三个固定历史回归任务上的结果，不能外推为通用仓库修复成功率。目前只验证了原始失败和参考补丁通过，没有真实模型结果。
+
+回归门禁额外运行 `manifest.json` 中的 `regression_tests`：BucketTests、ValueChainTests 以及三个 Split 测试类。补丁不得使这些原有用例产生新的失败。这是有范围的相关回归检查，不等同于完整上游测试套件。

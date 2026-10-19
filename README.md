@@ -93,13 +93,15 @@ python3 -m repofix run \
 - `patch.diff`：包含新增文件的 Git 补丁。
 - `report.json`：候选状态、独立测试结果、费用估算、耗时、代码树与 Issue 指纹、模型配置和停止原因。
 
-报告使用 `evidence_type=scripted/model` 标记证据来源；`resolved` 只在存在候选补丁且独立测试通过时为真。脚本演示的 resolved 不可计入模型成功率。任务执行入口为 `runs.RunSpec` 与 `runs.run_task`，CLI 和后续服务复用同一生命周期。
+报告使用 `evidence_type=scripted/model` 标记证据来源；`resolved` 只在存在候选补丁、独立测试通过且没有新回归失败时为真。脚本演示的 resolved 不可计入模型成功率。任务执行入口为 `runs.RunSpec` 与 `runs.run_task`，CLI 和后续服务复用同一生命周期。
 
 `candidate` 仅表示模型结束并提交了修改；`verification=passed` 表示原始版本在提供的独立检查中失败，而干净副本应用补丁后通过。它不证明一般正确性。未提供独立测试则为 `not_run`。预算、步数、上下文超限有各自状态；失败时尽量保留已有补丁。
 
 独立验证在 Agent 退出后执行，测试目录只在验证容器挂载。控制器通过固定的 unittest harness 记录测试 ID、实际执行数量、跳过项、预期失败和收集错误；原版本必须存在可复现失败，补丁版本必须通过相同用例，不能新增跳过项或预期失败。零测试、收集失败、超时均不算成功。验证以 `python -I` 启动，先导入标准库，再加入工作目录，减少仓库同名文件遮蔽标准库的问题。当前仅支持 unittest，已移除 `--verify-command` 自定义命令入口。
 
 导出补丁后还会检查完整性：禁止修改或删除已有测试，禁止修改或添加测试配置和依赖配置；允许新增复现测试。违规时报告 `policy_violation` 并列出路径，补丁保留供审查。检查依赖常见文件命名约定，并非敌对代码安全边界。
+
+控制器还会在模型调用前运行原有回归测试，并在补丁的干净副本上重跑。原有用例不得缺失、不得新增跳过或预期失败，也不得引入新的失败。已有失败可以被修复；仍存在的历史失败会单独列出。没有原有测试时明确标为 `not_available`。真实历史任务使用清单中固定的相关测试类，而非宣称运行上游全部测试。
 
 `report.json` 通过 `verification_reason` 给出具体原因，例如 `baseline_collection_error`、`test_set_changed`、`newly_skipped_tests`。这些检查仍不能证明一般正确性，也不能防御同一解释器内的恶意篡改。演示任务不是独立泛化评测集。
 

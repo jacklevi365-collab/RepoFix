@@ -10,7 +10,7 @@ from pathlib import Path
 from .agent import Agent
 from .budget import BudgetExceeded, Ledger
 from .config import load_env_file
-from .evaluation import run_checks, assess
+from .evaluation import run_checks, assess, assess_regression
 from .preflight import prepare_baseline
 from .provider import DeepSeek, ScriptedDemo
 from .sandbox import DockerRunner
@@ -30,6 +30,7 @@ class RunSpec:
     verification: Path | None = None
     env_file: Path = Path('.env')
     task_id: str | None = None
+    regression_tests: list[str] | None = None
     tool_mode: str = 'shell'
     context_mode: str = 'full'
     context_bytes: int = 100000
@@ -77,10 +78,11 @@ def run_task(spec, on_event=None):
         report['source_tree'] = git(folder / 'workspace', 'rev-parse', 'HEAD^{tree}').strip()
         baseline = None
         if spec.verification:
-            precheck = prepare_baseline(spec.repo, spec.verification, folder / 'baseline', factory)
+            precheck = prepare_baseline(spec.repo, spec.verification, folder / 'baseline', factory, spec.regression_tests)
             baseline = precheck['baseline_result']
             report['baseline_result'] = baseline
-            report['preflight'] = {key: value for key, value in precheck.items() if key != 'baseline_result'}
+            report['regression_baseline_result']=precheck.get('regression_baseline_result')
+            report['preflight'] = {key: value for key, value in precheck.items() if key not in {'baseline_result','regression_baseline_result'}}
             if not precheck['ready']:
                 report.update(status='preflight_failed', verification_reason=precheck['reason'])
                 return _finish(folder, report, ledger, started)
@@ -110,6 +112,9 @@ def run_task(spec, on_event=None):
             assessment = assess(baseline, result)
             report.update(verification=assessment['status'], verification_reason=assessment['reason'],
                           verification_result=result)
+            regression=run_checks(factory(folder / 'verification-workspace'),regression=True,selectors=spec.regression_tests)
+            report['regression_result']=regression
+            report['regression']=assess_regression(precheck['regression_baseline_result'],regression)
     except BudgetExceeded as exc:
         report.update(status='budget_limit', error=str(exc))
     except Exception as exc:
@@ -128,7 +133,7 @@ def _finish(folder, report, ledger, started):
     report['tool_calls'] = sum(event['kind'] == 'tool' for event in events)
     report['usage'] = {key: sum(event.get('usage', {}).get(key, 0) for event in model_events)
                        for key in ('prompt_tokens', 'completion_tokens', 'total_tokens')}
-    report['resolved'] = report['status'] == 'candidate' and report['verification'] == 'passed'
+    report['resolved'] = report['status'] == 'candidate' and report['verification'] == 'passed' and report.get('regression',{}).get('status')!='failed'
     if (folder / 'workspace' / '.git').is_dir() and not (folder / 'patch.diff').exists():
         try:
             export_patch(folder / 'workspace', folder / 'patch.diff')

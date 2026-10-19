@@ -76,3 +76,38 @@ class EvaluationTests(unittest.TestCase):
             (root / 'work/test_reproduction.py').write_text('# permitted new test\n')
             export_patch(root / 'work', root / 'patch.diff')
             self.assertEqual(integrity_violations(root / 'work'), ['conftest.py', 'test_old.py'])
+
+
+class RegressionGateTests(unittest.TestCase):
+    def test_new_failure_blocks_candidate_even_if_bug_test_passes(self):
+        from repofix.evaluation import assess_regression
+        baseline=result(True)
+        baseline['checks'].update(failures=[],errors=[],unexpected_successes=[])
+        candidate=result(False)
+        candidate['checks'].update(failures=['a'],errors=[],unexpected_successes=[])
+        assessment=assess_regression(baseline,candidate)
+        self.assertEqual(assessment['reason'],'new_regression_failures')
+        self.assertEqual(assessment['new_failures'],['a'])
+
+    def test_fixed_existing_failure_is_allowed_but_missing_test_is_not(self):
+        from repofix.evaluation import assess_regression
+        baseline=result(False)
+        baseline['checks'].update(failures=['a'],errors=[],unexpected_successes=[])
+        candidate=result(True)
+        candidate['checks'].update(failures=[],errors=[],unexpected_successes=[])
+        self.assertEqual(assess_regression(baseline,candidate)['status'],'passed')
+        self.assertEqual(assess_regression(baseline,result(True,('b',)))['reason'],'original_tests_missing')
+
+    def test_corrupt_repository_bytecode_cache_does_not_break_collection(self):
+        import py_compile
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp)
+            (root/'repo').mkdir()
+            (root/'checks').mkdir()
+            module=root/'repo/fixture_module.py'
+            module.write_text('answer=42\n')
+            bytecode=Path(py_compile.compile(str(module),doraise=True))
+            bytecode.write_bytes(bytecode.read_bytes()[:18])
+            (root/'checks/test_case.py').write_text('import unittest\nimport fixture_module\nclass T(unittest.TestCase):\n def test_ok(self): self.assertEqual(fixture_module.answer,42)\n')
+            run=run_checks(TrustedFixtureRunner(root/'repo',root/'checks'))
+            self.assertTrue(run['checks']['successful'],run)

@@ -1,8 +1,11 @@
 import tempfile
+import json
+import shlex
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 from repofix.runs import RunSpec, run_task
+from repofix.provider import ScriptedDemo
 from test_core import ROOT, TrustedFixtureRunner
 
 
@@ -29,3 +32,30 @@ class RunTests(unittest.TestCase):
             self.assertEqual(report['tool_calls'], 4)
             self.assertEqual(report['usage']['total_tokens'], 0)
             self.assertTrue((Path(report['output']) / 'report.json').is_file())
+
+
+    def test_independent_pass_cannot_hide_an_introduced_regression(self):
+        class BrokenRepair(ScriptedDemo):
+            def complete(self,messages,tools):
+                step=self.step
+                message,usage=super().complete(messages,tools)
+                if step==2:
+                    call=message['tool_calls'][0]['function']
+                    args=json.loads(call['arguments'])
+                    edit='from pathlib import Path; p=Path("stats.py"); p.write_text(p.read_text().replace("return value", "return 0"))'
+                    args['command']+='; python -c '+shlex.quote(edit)
+                    call['arguments']=json.dumps(args)
+                return message,usage
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp)
+            source=root/'source'
+            source.mkdir()
+            (source/'stats.py').write_text((ROOT/'examples/tinybug/repo/stats.py').read_text()+'\ndef identity(value):\n    return value\n')
+            (source/'test_other.py').write_text('import unittest\nfrom stats import identity\nclass T(unittest.TestCase):\n def test_identity(self): self.assertEqual(identity(9),9)\n')
+            with patch('repofix.runs.DockerRunner') as runner,patch('repofix.runs.ScriptedDemo',BrokenRepair):
+                runner.side_effect=lambda path,image,verification=None: TrustedFixtureRunner(path,verification)
+                report=run_task(RunSpec(repo=source,issue=ROOT/'examples/tinybug/issue.md',
+                    verification=ROOT/'examples/tinybug/verification',output=root/'runs',demo=True))
+            self.assertEqual(report['verification'],'passed')
+            self.assertEqual(report['regression']['status'],'failed')
+            self.assertFalse(report['resolved'])

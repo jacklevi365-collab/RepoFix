@@ -6,7 +6,7 @@ import time
 import uuid
 from collections import Counter
 from pathlib import Path
-from .evaluation import assess, run_checks
+from .evaluation import assess, run_checks, assess_regression
 from .preflight import prepare_baseline
 from .runs import RunSpec, run_task
 from .sandbox import DockerRunner
@@ -82,12 +82,12 @@ def run_batch(manifest, output=Path('runs'), mode='preflight', task_ids=None,
                 result = run_task(RunSpec(repo=task['repo'], issue=task['issue'],
                     verification=task['verification'], output=output, image=task['image'],
                     max_steps=max_steps, task_budget=task_budget, total_budget=total_budget,
-                    env_file=env_file, task_id=task['id'], context_mode=context_mode, tool_mode=tool_mode))
+                    env_file=env_file, task_id=task['id'], context_mode=context_mode, tool_mode=tool_mode, regression_tests=task.get('regression_tests')))
             else:
                 DockerRunner.check(task['image'])
                 task_folder = folder / task['id']
                 factory = lambda path, verification=None: DockerRunner(path, task['image'], verification)
-                precheck = prepare_baseline(task['repo'], task['verification'], task_folder / 'baseline', factory)
+                precheck = prepare_baseline(task['repo'], task['verification'], task_folder / 'baseline', factory, task.get('regression_tests'))
                 result.update(preflight=precheck, status='ready' if precheck['ready'] else 'preflight_failed')
                 if mode == 'reference' and precheck['ready']:
                     target = task_folder / 'reference'
@@ -97,6 +97,10 @@ def run_batch(manifest, output=Path('runs'), mode='preflight', task_ids=None,
                     assessment = assess(precheck['baseline_result'], checks)
                     result.update(verification=assessment, verification_result=checks,
                                   integrity_violations=violations, status='validated' if assessment['status'] == 'passed' and not violations else 'reference_failed')
+                    regression=run_checks(factory(target),regression=True,selectors=task.get('regression_tests'))
+                    result['regression_result']=regression
+                    result['regression']=assess_regression(precheck['regression_baseline_result'],regression)
+                    if result['regression']['status']=='failed': result['status']='reference_failed'
                     result['resolved'] = result['status'] == 'validated'
         except Exception as exc:
             result.update(status='error', error=f'{type(exc).__name__}: {exc}')
