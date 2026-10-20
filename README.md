@@ -197,10 +197,12 @@ python3 -m repofix batch --mode model --context-mode compact
 ## 项目资料
 
 - [运行与演示手册](docs/runbook.md)
+- [五分钟零 API 费用演示稿](docs/demo-walkthrough.md)
 - [工程验收与剩余条件](docs/acceptance.md)
 - [实验协议](docs/experiment-protocol.md)
 - [面试讲解与代码阅读](docs/interview.md)
 - [简历描述草稿](docs/resume.md)
+- [七天代码理解与面试准备](docs/study-plan.md)
 - [贡献与质量检查](CONTRIBUTING.md)
 
 ## 开发路线
